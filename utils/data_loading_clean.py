@@ -16,8 +16,7 @@ print("🚀 FastF1 running without cache for deployment stability")
 
 # Suppress FastF1 warnings for cleaner output
 warnings.filterwarnings('ignore', category=FutureWarning)
-import logging
-logging.getLogger('fastf1').setLevel(logging.ERROR)
+ff1.logger.setLevel('ERROR')
 
 # Only cache static data that doesn't change
 @st.cache_data(ttl=3600)
@@ -78,12 +77,7 @@ def get_lap_data(session, drivers):
         return pd.DataFrame()
     
     try:
-        # Handle both dict format and string format for drivers
-        if isinstance(drivers[0], dict):
-            driver_abbreviations = [d['abbreviation'] for d in drivers]
-        else:
-            driver_abbreviations = drivers
-            
+        driver_abbreviations = [d['abbreviation'] for d in drivers]
         laps = session.laps.pick_drivers(driver_abbreviations)
         
         if laps.empty:
@@ -124,30 +118,21 @@ def get_telemetry_data(session, drivers, lap_number=None):
         return pd.DataFrame()
     
     try:
-        # Handle both dict format and string format for drivers
-        if isinstance(drivers[0], dict):
-            driver_abbreviations = [d['abbreviation'] for d in drivers]
-        else:
-            driver_abbreviations = drivers
-            
+        driver_abbreviations = [d['abbreviation'] for d in drivers]
         telemetry_data = []
         
         for driver in driver_abbreviations:
-            try:
-                if lap_number:
-                    lap = session.laps.pick_driver(driver).pick_lap(lap_number)
-                else:
-                    lap = session.laps.pick_driver(driver).pick_fastest()
-                
-                if lap is not None and not lap.empty:
-                    telemetry = lap.get_telemetry()
-                    if not telemetry.empty:
-                        telemetry['Driver'] = driver
-                        telemetry['LapNumber'] = lap['LapNumber']
-                        telemetry_data.append(telemetry)
-            except Exception as driver_e:
-                st.warning(f"Error processing telemetry for driver {driver}: {str(driver_e)}")
-                continue
+            if lap_number:
+                lap = session.laps.pick_driver(driver).pick_lap(lap_number)
+            else:
+                lap = session.laps.pick_driver(driver).pick_fastest()
+            
+            if lap is not None and not lap.empty:
+                telemetry = lap.get_telemetry()
+                if not telemetry.empty:
+                    telemetry['Driver'] = driver
+                    telemetry['LapNumber'] = lap['LapNumber']
+                    telemetry_data.append(telemetry)
         
         if telemetry_data:
             return pd.concat(telemetry_data, ignore_index=True)
@@ -158,8 +143,8 @@ def get_telemetry_data(session, drivers, lap_number=None):
         st.error(f"Error loading telemetry data: {str(e)}")
         return pd.DataFrame()
 
-def get_strategy_data(session, selected_drivers=None):
-    """Get tyre strategy data for selected drivers"""
+def get_strategy_data(session):
+    """Get tyre strategy data for all drivers"""
     if session is None:
         return pd.DataFrame()
     
@@ -170,37 +155,27 @@ def get_strategy_data(session, selected_drivers=None):
         
         strategy_data = []
         
-        # Get driver abbreviations if selected_drivers is provided
-        if selected_drivers:
-            driver_abbreviations = [d['abbreviation'] if isinstance(d, dict) else d for d in selected_drivers]
-        else:
-            driver_abbreviations = session.drivers
-        
-        for driver in driver_abbreviations:
-            try:
-                driver_laps = laps.pick_driver(driver)
-                if driver_laps.empty:
-                    continue
-                    
-                compounds = driver_laps['Compound'].dropna().unique()
-                
-                for compound in compounds:
-                    compound_laps = driver_laps[driver_laps['Compound'] == compound]
-                    if not compound_laps.empty:
-                        start_lap = compound_laps['LapNumber'].min()
-                        end_lap = compound_laps['LapNumber'].max()
-                        stint_length = len(compound_laps)
-                        
-                        strategy_data.append({
-                            'Driver': driver,
-                            'Compound': compound,
-                            'StartLap': start_lap,
-                            'EndLap': end_lap,
-                            'StintLength': stint_length
-                        })
-            except Exception as driver_e:
-                st.warning(f"Error processing strategy data for driver {driver}: {str(driver_e)}")
+        for driver in session.drivers:
+            driver_laps = laps.pick_driver(driver)
+            if driver_laps.empty:
                 continue
+                
+            compounds = driver_laps['Compound'].dropna().unique()
+            
+            for compound in compounds:
+                compound_laps = driver_laps[driver_laps['Compound'] == compound]
+                if not compound_laps.empty:
+                    start_lap = compound_laps['LapNumber'].min()
+                    end_lap = compound_laps['LapNumber'].max()
+                    stint_length = len(compound_laps)
+                    
+                    strategy_data.append({
+                        'Driver': driver,
+                        'Compound': compound,
+                        'StartLap': start_lap,
+                        'EndLap': end_lap,
+                        'StintLength': stint_length
+                    })
         
         return pd.DataFrame(strategy_data)
         
