@@ -134,13 +134,8 @@ dmypy.json
 .pyre/
 
 # ==========================================
-# FastF1 & F1 Data Cache
+# F1 Data Files (Keep Large Data Out of Repo)
 # ==========================================
-# FastF1 cache directory (IMPORTANT!)
-cache/
-.cache/
-fastf1_cache/
-
 # F1 data files
 *.csv.gz
 *.parquet

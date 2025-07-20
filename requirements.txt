@@ -25,5 +25,5 @@ requests>=2.31.0
 scipy>=1.10.0
 python-dateutil>=2.8.0
 
-# For better error handling and caching
+# For better error handling and retries
 tenacity>=8.2.0
