@@ -1,0 +1,58 @@
+feature,importance
+LapNumber,9460
+TyreAge,6262
+Compound_MEDIUM,1554
+Compound_SOFT,784
+TrackID_French Grand Prix,363
+TrackID_Mexico City Grand Prix,346
+TrackID_São Paulo Grand Prix,334
+TrackID_Azerbaijan Grand Prix,326
+TrackID_British Grand Prix,326
+TrackID_Canadian Grand Prix,324
+TrackID_Miami Grand Prix,319
+TrackID_Hungarian Grand Prix,317
+TrackID_Austrian Grand Prix,313
+TrackID_Dutch Grand Prix,312
+TrackID_United States Grand Prix,289
+TrackID_Spanish Grand Prix,265
+TrackID_Saudi Arabian Grand Prix,244
+TrackID_Italian Grand Prix,224
+TrackID_Bahrain Grand Prix,219
+TrackID_Emilia Romagna Grand Prix,211
+Compound_None,202
+TrackID_Belgian Grand Prix,197
+TrackID_Singapore Grand Prix,154
+TeamID_Ferrari,145
+TeamID_Mercedes,141
+TrackID_Japanese Grand Prix,127
+TrackID_Monaco Grand Prix,115
+TeamID_Williams,115
+TeamID_Red Bull Racing,113
+Compound_WET,109
+TeamID_McLaren,98
+DriverID_NOR,95
+DriverID_HAM,91
+TeamID_Haas F1 Team,88
+Compound_INTERMEDIATE,88
+DriverID_BOT,87
+DriverID_STR,79
+DriverID_LEC,67
+TeamID_Alpine,67
+DriverID_TSU,63
+TeamID_Aston Martin,61
+DriverID_LAT,60
+DriverID_ALO,57
+DriverID_PER,56
+TeamID_AlphaTauri,52
+DriverID_RIC,52
+DriverID_VER,52
+DriverID_VET,47
+DriverID_ZHO,47
+DriverID_MAG,42
+DriverID_GAS,28
+DriverID_RUS,26
+DriverID_MSC,25
+DriverID_SAI,21
+DriverID_OCO,16
+DriverID_HUL,0
+DriverID_DEV,0

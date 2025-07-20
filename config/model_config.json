@@ -1,0 +1,56 @@
+{
+    "data_collection": {
+        "seasons_to_load": [2022, 2023],
+        "session_type": "R",
+        "exclude_sprint_races": true,
+        "min_stint_length": 3
+    },
+    "feature_engineering": {
+        "target_variable": "LapTimeSeconds",
+        "categorical_features": ["Compound", "TrackID", "DriverID", "TeamID"],
+        "numerical_features": ["TyreAge", "LapNumber"]
+    },
+    "model_training": {
+        "algorithm": "LightGBM",
+        "objective": "mae",
+        "n_estimators": 1000,
+        "learning_rate": 0.1,
+        "max_depth": 7,
+        "min_child_samples": 100,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "random_state": 42,
+        "early_stopping_rounds": 50
+    },
+    "data_preprocessing": {
+        "test_split_ratio": 0.2,
+        "validation_split_ratio": 0.1,
+        "random_state": 42,
+        "filter_accurate_laps_only": true
+    },
+    "output_paths": {
+        "model_file": "models/tyre_model_lgbm.joblib",
+        "preprocessing_pipeline": "models/preprocessing_pipeline.joblib",
+        "feature_names": "models/feature_names.json",
+        "performance_report": "reports/training_performance.json",
+        "training_log": "reports/training_log.txt"
+    },
+    "validation": {
+        "validation_seasons": [2024, 2025],
+        "validation_circuits": ["Bahrain International Circuit", "Monaco", "Silverstone"],
+        "report_path": "reports/validation_report.json"
+    },
+    "metadata": {
+        "model_version": "v2.0-lgbm",
+        "created_by": "F1BeginnerProject",
+        "description": "Advanced LightGBM model for F1 tyre degradation prediction",
+        "features_description": {
+            "TyreAge": "Number of laps on current tyre set (resets at pit stops)",
+            "LapNumber": "Lap number in race (fuel load proxy)",
+            "Compound": "Tyre compound (SOFT/MEDIUM/HARD)",
+            "TrackID": "Circuit identifier",
+            "DriverID": "Driver identifier", 
+            "TeamID": "Team/Constructor identifier"
+        }
+    }
+}

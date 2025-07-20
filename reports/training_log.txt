@@ -1,0 +1,38 @@
+
+=============================================================================
+F1BeginnerProject - Advanced ML Model Training Summary
+=============================================================================
+
+🏁 MODEL INFORMATION
+   Version: v2.0-lgbm
+   Algorithm: LightGBM Gradient Boosting
+   Trained: 2025-07-19 20:02:07
+
+📊 DATA SUMMARY  
+   Seasons: 2022, 2023
+   Total Laps: 18,555
+   Circuits: 21
+   Drivers: 22
+   Teams: 10
+
+🎯 PERFORMANCE METRICS
+   Mean Absolute Error: 0.777 seconds
+   R² Score: 0.9719
+   Mean % Error: 0.86%
+   Test Samples: 3,711
+
+🏆 TOP 5 FEATURES
+   LapNumber: 9460
+   TyreAge: 6262
+   Compound_MEDIUM: 1554
+   Compound_SOFT: 784
+   TrackID_French Grand Prix: 363
+
+💾 OUTPUT FILES
+   Model: models/tyre_model_lgbm.joblib
+   Preprocessor: models/preprocessing_pipeline.joblib
+   Report: reports/training_performance.json
+
+✅ Training completed successfully!
+Model ready for deployment in Streamlit Strategy Simulator.
+=============================================================================
