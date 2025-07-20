@@ -8,9 +8,48 @@ import fastf1 as ff1
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import os
 
-# Enable FastF1 caching for better performance
-ff1.Cache.enable_cache('cache')
+def setup_fastf1_cache():
+    """Setup FastF1 cache directory in a deployment-friendly way"""
+    # Try different cache locations based on environment
+    possible_cache_dirs = [
+        'cache',  # Local development
+        '/tmp/fastf1_cache',  # Streamlit Cloud temporary directory
+        './cache',  # Relative path fallback
+    ]
+    
+    cache_dir = None
+    for dir_path in possible_cache_dirs:
+        try:
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path, exist_ok=True)
+            
+            # Test if we can write to this directory
+            test_file = os.path.join(dir_path, 'test_write.tmp')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            
+            cache_dir = dir_path
+            break
+        except (OSError, PermissionError, Exception):
+            continue
+    
+    if cache_dir:
+        try:
+            ff1.Cache.enable_cache(cache_dir)
+            print(f"✅ FastF1 cache enabled at: {cache_dir}")
+            return True
+        except Exception as e:
+            print(f"⚠️ FastF1 cache setup failed: {e}")
+            return False
+    else:
+        print("⚠️ Could not setup FastF1 cache, running without cache (slower)")
+        return False
+
+# Setup cache - continue even if it fails
+cache_enabled = setup_fastf1_cache()
 
 @st.cache_data
 def get_available_years():
