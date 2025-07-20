@@ -178,8 +178,7 @@ F1DataAnalysisPlatform/
 ├── 🛠️ utils/
 │   ├── data_loading.py                    # F1 data utilities
 │   └── plotting.py                        # Visualization functions
-├── 📦 requirements.txt                    # Dependency management
-└── 💾 cache/                             # FastF1 data caching
+└── 📦 requirements.txt                    # Dependency management
 ```
 
 ### **Data Flow Architecture**

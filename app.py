@@ -10,7 +10,7 @@ import os
 from utils.data_loading import (
     get_available_years, get_race_schedule, load_race_data, get_driver_list,
     get_lap_data, get_telemetry_data, get_strategy_data, get_race_results,
-    get_session_info, format_lap_time, cache_enabled
+    get_session_info, format_lap_time
 )
 from utils.plotting import (
     plot_pace_comparison, plot_tyre_strategy, plot_telemetry_comparison,
@@ -54,12 +54,6 @@ def main():
     # Sidebar configuration
     with st.sidebar:
         st.header("Configuration")
-        
-        # Cache status indicator
-        if cache_enabled:
-            st.success("🚀 FastF1 Cache: Enabled")
-        else:
-            st.warning("⚠️ FastF1 Cache: Disabled (slower loading)")
         
         st.divider()
         
@@ -150,11 +144,6 @@ def main():
         st.subheader("Analysis Options")
         show_race_info = st.checkbox("Show Race Information", value=True)
         show_summary_stats = st.checkbox("Show Summary Statistics", value=True)
-        
-        # Cache management
-        if st.button("Clear Cache & Refresh Data", help="Clear cached data and reload fresh data from the API"):
-            st.cache_data.clear()
-            st.rerun()
     
     # Main content tabs
     tab1, tab2, tab3, tab4, tab5 = st.tabs([

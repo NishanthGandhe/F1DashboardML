@@ -1,8 +1,3 @@
-"""
-Data loading utilities for F1BeginnerProject
-Direct FastF1 API calls without problematic caching
-"""
-
 import streamlit as st
 import fastf1 as ff1
 import pandas as pd
@@ -10,23 +5,16 @@ import numpy as np
 from datetime import datetime
 import warnings
 
-# Disable FastF1 cache completely for deployment stability
-cache_enabled = False
-print("🚀 FastF1 running without cache for deployment stability")
-
 # Suppress FastF1 warnings for cleaner output
 warnings.filterwarnings('ignore', category=FutureWarning)
 import logging
 logging.getLogger('fastf1').setLevel(logging.ERROR)
 
-# Only cache static data that doesn't change
-@st.cache_data(ttl=3600)
 def get_available_years():
     """Get list of available years for F1 data"""
     current_year = datetime.now().year
     return list(range(2018, current_year + 1))
 
-@st.cache_data(ttl=3600)
 def get_race_schedule(year):
     """Get race schedule for a given year"""
     try:
