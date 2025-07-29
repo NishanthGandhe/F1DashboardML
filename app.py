@@ -457,7 +457,9 @@ def main():
                 total_times = []
                 
                 for idx, row in display_results.iterrows():
-                    if row['Position'] == 1:
+                    # Safe position comparison - handle NA values
+                    position = row['Position']
+                    if pd.notna(position) and position == 1:
                         # Winner's time is the reference - clean up the format
                         winner_time = row['Time']
                         # Clean up winner time format (remove "0 days" prefix)

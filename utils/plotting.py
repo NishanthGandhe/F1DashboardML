@@ -430,8 +430,15 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
     if reference_driver is None or reference_driver not in available_drivers:
         # Find who was leading most laps or has fastest average time
         if 'Position' in lap_data.columns:
-            leader_counts = lap_data[lap_data['Position'] == 1]['Driver'].value_counts()
-            reference_driver = leader_counts.index[0] if not leader_counts.empty else available_drivers[0]
+            # Safe position filtering - handle NA values
+            valid_positions = lap_data.dropna(subset=['Position'])
+            if not valid_positions.empty:
+                leader_counts = valid_positions[valid_positions['Position'] == 1]['Driver'].value_counts()
+                reference_driver = leader_counts.index[0] if not leader_counts.empty else available_drivers[0]
+            else:
+                # No valid position data, use fastest average
+                avg_times = lap_data.groupby('Driver')[time_col].mean()
+                reference_driver = avg_times.idxmin()
         else:
             # Use driver with fastest average lap time
             avg_times = lap_data.groupby('Driver')[time_col].mean()
