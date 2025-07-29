@@ -547,9 +547,59 @@ def main():
                 st.dataframe(formatted_results, use_container_width=True, hide_index=True)
             else:
                 # Fallback to original display if Time column processing fails
-                display_results = race_results[['Position', 'DriverName', 'Abbreviation', 'TeamName', 'Points']].copy()
-                display_results.columns = ['Pos', 'Driver', 'Code', 'Team', 'Points']
-                st.dataframe(display_results, use_container_width=True, hide_index=True)
+                # Use the same flexible column detection as above
+                available_result_cols = race_results.columns.tolist()
+                fallback_cols = []
+                
+                if 'Position' in available_result_cols:
+                    fallback_cols.append('Position')
+                
+                # Try different driver name columns for fallback
+                if 'FullName' in available_result_cols:
+                    fallback_cols.append('FullName')
+                elif 'DriverName' in available_result_cols:
+                    fallback_cols.append('DriverName')
+                elif 'Driver' in available_result_cols:
+                    fallback_cols.append('Driver')
+                
+                # Try abbreviation columns
+                if 'Abbreviation' in available_result_cols:
+                    fallback_cols.append('Abbreviation')
+                elif 'Driver' in available_result_cols and 'Driver' not in fallback_cols:
+                    fallback_cols.append('Driver')
+                
+                # Try team columns
+                if 'TeamName' in available_result_cols:
+                    fallback_cols.append('TeamName')
+                elif 'Team' in available_result_cols:
+                    fallback_cols.append('Team')
+                
+                if 'Points' in available_result_cols:
+                    fallback_cols.append('Points')
+                
+                if fallback_cols:
+                    display_results = race_results[fallback_cols].copy()
+                    # Create generic column names
+                    generic_names = []
+                    for col in fallback_cols:
+                        if col in ['Position']:
+                            generic_names.append('Pos')
+                        elif col in ['FullName', 'DriverName', 'Driver']:
+                            generic_names.append('Driver')
+                        elif col in ['Abbreviation']:
+                            generic_names.append('Code')
+                        elif col in ['TeamName', 'Team']:
+                            generic_names.append('Team')
+                        elif col in ['Points']:
+                            generic_names.append('Points')
+                        else:
+                            generic_names.append(col)
+                    
+                    display_results.columns = generic_names
+                    st.dataframe(display_results, use_container_width=True, hide_index=True)
+                else:
+                    st.warning("Race results data format not recognized")
+                    st.dataframe(race_results, use_container_width=True, hide_index=True)
         
         # Additional race statistics
         if not lap_data.empty:
