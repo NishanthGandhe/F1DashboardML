@@ -414,47 +414,78 @@ def create_summary_metrics(lap_data, session_info):
         if lap_data.empty:
             return {}
         
+        # Debug: Check what columns are available
+        print(f"Summary metrics - lap data columns: {lap_data.columns.tolist()}")
+        
+        # Check for required columns
+        if 'LapTimeSeconds' not in lap_data.columns:
+            st.error("LapTimeSeconds column not found in lap data")
+            return {}
+        
+        # Filter out NaN lap times
+        valid_laps = lap_data.dropna(subset=['LapTimeSeconds'])
+        
+        if valid_laps.empty:
+            st.warning("No valid lap times found for summary metrics")
+            return {}
+        
         metrics = {}
         
         # Get fastest lap
-        fastest_lap_idx = lap_data['LapTimeSeconds'].idxmin()
-        fastest_lap = lap_data.loc[fastest_lap_idx]
+        fastest_lap_idx = valid_laps['LapTimeSeconds'].idxmin()
+        fastest_lap = valid_laps.loc[fastest_lap_idx]
         
-        # Use available driver information - FastF1 uses 'Driver' not 'DriverName'
+        # Use available driver information
         driver_code = 'Unknown'
         if 'Driver' in fastest_lap.index:
             driver_code = fastest_lap['Driver']
         elif 'Abbreviation' in fastest_lap.index:
             driver_code = fastest_lap['Abbreviation']
         
+        # Find lap number column
+        lap_number = 'N/A'
+        if 'LapNumber' in fastest_lap.index:
+            lap_number = int(fastest_lap['LapNumber'])
+        elif 'Lap' in fastest_lap.index:
+            lap_number = int(fastest_lap['Lap'])
+        
+        def format_time_safe(seconds):
+            """Safely format time handling NaN"""
+            if pd.isna(seconds):
+                return "N/A"
+            try:
+                return f"{int(seconds//60)}:{seconds%60:06.3f}"
+            except (ValueError, TypeError):
+                return "N/A"
+        
         metrics['fastest_lap'] = {
             'driver': driver_code,
-            'time': f"{int(fastest_lap['LapTimeSeconds']//60)}:{fastest_lap['LapTimeSeconds']%60:06.3f}",
-            'lap': int(fastest_lap['LapNumber']) if 'LapNumber' in fastest_lap.index else 'N/A'
+            'time': format_time_safe(fastest_lap['LapTimeSeconds']),
+            'lap': lap_number
         }
         
         # Calculate average lap times per driver
-        if 'Driver' in lap_data.columns:
-            avg_times = lap_data.groupby('Driver')['LapTimeSeconds'].mean()
+        if 'Driver' in valid_laps.columns:
+            avg_times = valid_laps.groupby('Driver')['LapTimeSeconds'].mean()
             if not avg_times.empty:
                 fastest_avg_driver = avg_times.idxmin()
                 fastest_avg_time = avg_times.min()
                 
                 metrics['fastest_average'] = {
                     'driver': fastest_avg_driver,
-                    'time': f"{int(fastest_avg_time//60)}:{fastest_avg_time%60:06.3f}"
+                    'time': format_time_safe(fastest_avg_time)
                 }
         
         # Calculate consistency (standard deviation)
-        if 'Driver' in lap_data.columns:
-            std_times = lap_data.groupby('Driver')['LapTimeSeconds'].std()
+        if 'Driver' in valid_laps.columns:
+            std_times = valid_laps.groupby('Driver')['LapTimeSeconds'].std()
             if not std_times.empty:
                 most_consistent_driver = std_times.idxmin()
                 consistency_value = std_times.min()
                 
                 metrics['most_consistent'] = {
                     'driver': most_consistent_driver,
-                    'std_dev': f"{consistency_value:.3f}s"
+                    'std_dev': f"{consistency_value:.3f}s" if not pd.isna(consistency_value) else "N/A"
                 }
         
         # Race information
@@ -468,7 +499,7 @@ def create_summary_metrics(lap_data, session_info):
         return metrics
         
     except Exception as e:
-        # Import here to avoid circular imports
         import streamlit as st
         st.error(f"Error creating summary metrics: {str(e)}")
+        print(f"Error in create_summary_metrics: {str(e)}")
         return {}
