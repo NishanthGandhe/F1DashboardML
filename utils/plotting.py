@@ -341,18 +341,60 @@ def plot_position_changes(lap_data, title="Position Changes Throughout Race"):
 def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Analysis"):
     """Plot gap to leader or reference driver"""
     if lap_data.empty:
+        st.warning("No lap data available for gap analysis")
+        return go.Figure()
+    
+    # Debug: Show available columns
+    print(f"Gap analysis - available columns: {lap_data.columns.tolist()}")
+    
+    # Check for required columns
+    required_columns = ['Driver', 'LapNumber']
+    missing_columns = [col for col in required_columns if col not in lap_data.columns]
+    
+    if missing_columns:
+        st.warning(f"Gap analysis requires columns: {missing_columns}")
+        return go.Figure()
+    
+    # Check for lap time column
+    time_col = None
+    if 'LapTimeSeconds' in lap_data.columns:
+        time_col = 'LapTimeSeconds'
+    elif 'LapTime' in lap_data.columns:
+        time_col = 'LapTime'
+        # Convert to seconds if needed
+        if lap_data[time_col].dtype == 'object':
+            try:
+                lap_data = lap_data.copy()
+                lap_data['LapTimeSeconds'] = lap_data[time_col].apply(
+                    lambda x: x.total_seconds() if hasattr(x, 'total_seconds') else float(x)
+                )
+                time_col = 'LapTimeSeconds'
+            except:
+                st.warning("Could not convert lap times to seconds")
+                return go.Figure()
+    else:
+        st.warning("No lap time column found for gap analysis")
         return go.Figure()
     
     fig = go.Figure()
     
     # If no reference driver specified, use the race leader
     if reference_driver is None:
-        # Find who was leading most laps
+        # Find who was leading most laps or has fastest average time
         if 'Position' in lap_data.columns:
             leader_counts = lap_data[lap_data['Position'] == 1]['Driver'].value_counts()
             reference_driver = leader_counts.index[0] if not leader_counts.empty else lap_data['Driver'].iloc[0]
+        else:
+            # Use driver with fastest average lap time
+            avg_times = lap_data.groupby('Driver')[time_col].mean()
+            reference_driver = avg_times.idxmin()
     
     drivers = lap_data['Driver'].unique()
+    
+    # Filter to only selected drivers if this data is filtered
+    if len(drivers) > 10:  # If we have many drivers, this might be full race data
+        st.info(f"Using reference driver: {reference_driver}")
+    
     team_driver_count = {}
     
     for driver in drivers:
@@ -362,21 +404,27 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
         driver_laps = lap_data[lap_data['Driver'] == driver].copy()
         ref_laps = lap_data[lap_data['Driver'] == reference_driver].copy()
         
-        # Calculate gap for each lap
+        if driver_laps.empty or ref_laps.empty:
+            continue
+        
+        # Calculate cumulative gap for each lap
         gaps = []
         lap_numbers = []
+        cumulative_gap = 0
         
-        for lap_num in driver_laps['LapNumber'].unique():
+        for lap_num in sorted(driver_laps['LapNumber'].unique()):
             driver_lap = driver_laps[driver_laps['LapNumber'] == lap_num]
             ref_lap = ref_laps[ref_laps['LapNumber'] == lap_num]
             
             if not driver_lap.empty and not ref_lap.empty:
-                gap = driver_lap['LapTimeSeconds'].iloc[0] - ref_lap['LapTimeSeconds'].iloc[0]
-                gaps.append(gap)
+                lap_gap = driver_lap[time_col].iloc[0] - ref_lap[time_col].iloc[0]
+                cumulative_gap += lap_gap
+                gaps.append(cumulative_gap)
                 lap_numbers.append(lap_num)
         
-        if gaps:
-            team = driver_laps['Team'].iloc[0]
+        if gaps and len(gaps) > 1:  # Only plot if we have multiple data points
+            # Get team for coloring
+            team = driver_laps['Team'].iloc[0] if 'Team' in driver_laps.columns else 'Unknown'
             driver_idx = team_driver_count.get(team, 0)
             team_driver_count[team] = driver_idx + 1
             
@@ -386,9 +434,10 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
                 x=lap_numbers,
                 y=gaps,
                 mode='lines+markers',
-                name=f"{driver}",  # Fixed: Use driver abbreviation only
+                name=f"{driver}",
                 line=dict(color=color, width=2),
-                marker=dict(size=4)
+                marker=dict(size=4),
+                hovertemplate=f"<b>{driver}</b><br>Lap: %{{x}}<br>Gap: %{{y:.2f}}s<extra></extra>"
             ))
     
     # Add reference line at 0
@@ -398,7 +447,7 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
     fig.update_layout(
         title=title,
         xaxis_title="Lap Number", 
-        yaxis_title="Gap (seconds)",
+        yaxis_title="Cumulative Gap (seconds)",
         hovermode='closest',
         showlegend=True,
         height=600,

@@ -222,18 +222,34 @@ def main():
             
             # Gap analysis
             if len(selected_drivers) > 1:
-                reference_driver = st.selectbox(
-                    "Reference Driver for Gap Analysis",
-                    selected_drivers,
-                    help="Select the driver to use as reference for gap calculations"
-                )
+                st.subheader("🏁 Gap Analysis")
                 
-                gap_chart = plot_gap_analysis(
-                    lap_data, 
-                    reference_driver,
-                    f"Gap to {reference_driver} - {selected_race} {selected_year}"
-                )
-                st.plotly_chart(gap_chart, use_container_width=True)
+                # Debug info
+                st.write(f"Debug: Available drivers for gap analysis: {selected_drivers}")
+                st.write(f"Debug: Lap data shape: {lap_data.shape}")
+                st.write(f"Debug: Lap data columns: {lap_data.columns.tolist()}")
+                
+                # Filter lap data to selected drivers only
+                filtered_lap_data = lap_data[lap_data['Driver'].isin(selected_drivers)].copy()
+                st.write(f"Debug: Filtered lap data shape: {filtered_lap_data.shape}")
+                
+                if not filtered_lap_data.empty:
+                    reference_driver = st.selectbox(
+                        "Reference Driver for Gap Analysis",
+                        selected_drivers,
+                        help="Select the driver to use as reference for gap calculations"
+                    )
+                    
+                    gap_chart = plot_gap_analysis(
+                        filtered_lap_data, 
+                        reference_driver,
+                        f"Gap to {reference_driver} - {selected_race} {selected_year}"
+                    )
+                    st.plotly_chart(gap_chart, use_container_width=True)
+                else:
+                    st.warning("No lap data available for selected drivers")
+            else:
+                st.info("Select at least 2 drivers to see gap analysis")
             
             # Position changes (if position data available)
             if 'Position' in lap_data.columns:
@@ -249,7 +265,7 @@ def main():
     with tab2:
         st.header("Tyre Strategy Analysis")
         
-        with st.spinner("Loading strategy data..."):
+        with st.spinner ("Loading strategy data..."):
             strategy_data = get_strategy_data(session, selected_drivers)
         
         if not strategy_data.empty:
@@ -381,7 +397,11 @@ def main():
             # Winner information
             if not race_results.empty:
                 winner = race_results.iloc[0]
-                st.success(f"Winner: {winner.DriverName} ({winner.Abbreviation}) - {winner.TeamName}")
+                # Use available attributes from FastF1 DriverResult object
+                driver_name = getattr(winner, 'FullName', getattr(winner, 'Driver', 'Unknown'))
+                driver_abbrev = getattr(winner, 'Abbreviation', getattr(winner, 'Driver', 'Unknown'))
+                team_name = getattr(winner, 'TeamName', getattr(winner, 'Team', 'Unknown'))
+                st.success(f"Winner: {driver_name} ({driver_abbrev}) - {team_name}")
             
             
             # Process race results to show total times instead of gaps
@@ -470,23 +490,59 @@ def main():
                 # Replace Time column with formatted times
                 display_results['FormattedTime'] = total_times
                 
-                # Select and rename columns for display
-                display_cols = ['Position', 'DriverName', 'Abbreviation', 'TeamName', 'FormattedTime', 'Points']
-                available_cols = [col for col in display_cols if col in display_results.columns]
+                # Select and rename columns for display - use available FastF1 columns
+                available_result_cols = race_results.columns.tolist()
                 
-                formatted_results = display_results[available_cols].copy()
+                # Map to available columns
+                display_cols = []
+                col_mapping = {}
+                
+                if 'Position' in available_result_cols:
+                    display_cols.append('Position')
+                    col_mapping['Position'] = 'Pos'
+                
+                # Try different driver name columns
+                if 'FullName' in available_result_cols:
+                    display_cols.append('FullName')
+                    col_mapping['FullName'] = 'Driver'
+                elif 'DriverName' in available_result_cols:
+                    display_cols.append('DriverName')
+                    col_mapping['DriverName'] = 'Driver'
+                elif 'Driver' in available_result_cols:
+                    display_cols.append('Driver')
+                    col_mapping['Driver'] = 'Driver'
+                
+                # Try abbreviation columns
+                if 'Abbreviation' in available_result_cols:
+                    display_cols.append('Abbreviation')
+                    col_mapping['Abbreviation'] = 'Code'
+                elif 'Driver' in available_result_cols and 'Driver' not in display_cols:
+                    display_cols.append('Driver')
+                    col_mapping['Driver'] = 'Code'
+                
+                # Try team columns
+                if 'TeamName' in available_result_cols:
+                    display_cols.append('TeamName')
+                    col_mapping['TeamName'] = 'Team'
+                elif 'Team' in available_result_cols:
+                    display_cols.append('Team')
+                    col_mapping['Team'] = 'Team'
+                
+                # Add other useful columns if available
+                if 'FormattedTime' in display_results.columns:
+                    display_cols.append('FormattedTime')
+                    col_mapping['FormattedTime'] = 'Time/Gap'
+                    
+                if 'Points' in available_result_cols:
+                    display_cols.append('Points')
+                    col_mapping['Points'] = 'Points'
+                
+                # Create display dataframe with available columns
+                available_display_cols = [col for col in display_cols if col in display_results.columns]
+                formatted_results = display_results[available_display_cols].copy()
                 
                 # Rename columns for better display
-                column_names = {
-                    'Position': 'Pos',
-                    'DriverName': 'Driver',
-                    'Abbreviation': 'Code',
-                    'TeamName': 'Team',
-                    'FormattedTime': 'Time/Gap',
-                    'Points': 'Points'
-                }
-                
-                formatted_results = formatted_results.rename(columns=column_names)
+                formatted_results = formatted_results.rename(columns=col_mapping)
                 
                 st.dataframe(formatted_results, use_container_width=True, hide_index=True)
             else:
