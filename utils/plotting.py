@@ -54,20 +54,64 @@ def plot_pace_comparison(lap_data, title="Lap Time Comparison"):
     if lap_data.empty:
         return go.Figure()
     
+    # Filter out NaN lap times at the beginning
+    valid_lap_data = lap_data.dropna(subset=['LapTimeSeconds']).copy()
+    
+    if valid_lap_data.empty:
+        st.warning("No valid lap time data available for pace comparison")
+        return go.Figure()
+    
     fig = go.Figure()
     
-    drivers = lap_data['Driver'].unique()
+    drivers = valid_lap_data['Driver'].unique()
     team_driver_count = {}
     
+    def format_lap_time_safe(seconds):
+        """Safely format lap time, handling NaN values"""
+        try:
+            if pd.isna(seconds) or seconds <= 0:
+                return "N/A"
+            minutes = int(seconds // 60)
+            remaining_seconds = seconds % 60
+            return f"{minutes}:{remaining_seconds:06.3f}"
+        except (ValueError, TypeError):
+            return "N/A"
+    
     for driver in drivers:
-        driver_laps = lap_data[lap_data['Driver'] == driver].copy()
-        team = driver_laps['Team'].iloc[0]
+        driver_laps = valid_lap_data[valid_lap_data['Driver'] == driver].copy()
+        
+        # Additional filtering for this driver's data
+        driver_laps = driver_laps.dropna(subset=['LapTimeSeconds'])
+        
+        if driver_laps.empty:
+            continue  # Skip this driver if no valid data
+            
+        team = driver_laps['Team'].iloc[0] if 'Team' in driver_laps.columns else 'Unknown'
         
         # Track how many drivers from this team we've seen
         driver_idx = team_driver_count.get(team, 0)
         team_driver_count[team] = driver_idx + 1
         
         color = get_driver_color(team, driver_idx)
+        
+        # Create safe custom data with proper error handling
+        formatted_times = []
+        compounds = []
+        tyre_ages = []
+        
+        for _, row in driver_laps.iterrows():
+            # Safe time formatting
+            formatted_times.append(format_lap_time_safe(row['LapTimeSeconds']))
+            
+            # Safe compound extraction
+            compounds.append(row.get('Compound', 'Unknown'))
+            
+            # Safe tyre age extraction
+            if 'TyreAge' in driver_laps.columns:
+                tyre_age = row.get('TyreAge', 'N/A')
+                tyre_ages.append(str(tyre_age) if pd.notna(tyre_age) else 'N/A')
+            else:
+                tyre_ages.append('N/A')
         
         fig.add_trace(go.Scatter(
             x=driver_laps['LapNumber'],
@@ -85,9 +129,9 @@ def plot_pace_comparison(lap_data, title="Lap Time Comparison"):
                 "<extra></extra>"
             ),
             customdata=np.column_stack((
-                driver_laps.apply(lambda row: f"{int(row['LapTimeSeconds']//60)}:{row['LapTimeSeconds']%60:06.3f}", axis=1),
-                driver_laps['Compound'],
-                driver_laps['TyreAge'] if 'TyreAge' in driver_laps.columns else ['N/A'] * len(driver_laps)
+                formatted_times,
+                compounds,
+                tyre_ages
             ))
         ))
     
