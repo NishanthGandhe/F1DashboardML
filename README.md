@@ -67,8 +67,6 @@ This platform represents the intersection of **motorsports analytics**, **machin
 ### **Data Engineering**
 - **JSON Configuration** - Parameter management
 - **Joblib Serialization** - Model persistence
-- **CSV Export** - Data portability
-- **Caching Layer** - Performance optimization
 
 ---
 
@@ -167,8 +165,6 @@ Top contributing features (importance scores):
 ```
 F1DataAnalysisPlatform/
 ├── 📱 app.py                              # Main Streamlit application
-├── 📓 advanced_ml_model_training.ipynb    # ML pipeline development
-├── 🧪 model_validation.ipynb              # Independent model testing
 ├── ⚙️ config/
 │   └── model_config.json                  # ML configuration management
 ├── 🤖 models/
@@ -220,10 +216,6 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Train the ML model (first time setup)
-jupyter notebook advanced_ml_model_training.ipynb
-# Execute all cells to train the LightGBM model
 
 # Launch the application
 streamlit run app.py
@@ -308,6 +300,7 @@ predictions = model.predict(preprocessor.transform(simulation_data))
 
 ### **Phase 2: Production Deployment** (Q2 2025)
 - [ ] Docker containerization
+- [ ] Caching System
 - [ ] CI/CD pipeline setup
 - [ ] Cloud deployment (AWS/GCP)
 - [ ] API endpoint development
