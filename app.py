@@ -271,10 +271,10 @@ def main():
                     pit_stops = len(driver_data['Compound'].value_counts()) - 1
                     
                     strategy_stats.append({
-                        'Driver': f"{driver_data['DriverName'].iloc[0]} ({driver})",
+                        'Driver': driver,  # Fixed: Use driver abbreviation instead of DriverName
                         'Compounds Used': ', '.join(compounds_used),
                         'Pit Stops': pit_stops,
-                        'Longest Stint': driver_data.groupby('Compound').size().max()
+                        'Longest Stint': driver_data.groupby('Compound')['StintLength'].max().max() if 'StintLength' in driver_data.columns else driver_data.groupby('Compound').size().max()
                     })
             
             if strategy_stats:
@@ -503,38 +503,36 @@ def main():
             
             with col1:
                 st.markdown("**Fastest Lap Times by Driver:**")
-                fastest_laps = lap_data.groupby(['Driver', 'DriverName'])['LapTimeSeconds'].min().reset_index()
+                fastest_laps = lap_data.groupby('Driver')['LapTimeSeconds'].min().reset_index()
                 fastest_laps['Formatted Time'] = fastest_laps['LapTimeSeconds'].apply(
                     lambda x: f"{int(x//60)}:{x%60:06.3f}"
                 )
                 fastest_laps = fastest_laps.sort_values('LapTimeSeconds')
                 st.dataframe(
-                    fastest_laps[['DriverName', 'Driver', 'Formatted Time']], 
+                    fastest_laps[['Driver', 'Formatted Time']], 
                     hide_index=True,
                     column_config={
-                        'DriverName': 'Driver Name',
-                        'Driver': 'Code',
+                        'Driver': 'Driver Code',
                         'Formatted Time': 'Best Lap'
                     }
                 )
             
             with col2:
                 st.markdown("**Average Lap Times:**")
-                avg_laps = lap_data.groupby(['Driver', 'DriverName'])['LapTimeSeconds'].mean().reset_index()
+                avg_laps = lap_data.groupby('Driver')['LapTimeSeconds'].mean().reset_index()
                 avg_laps['Formatted Time'] = avg_laps['LapTimeSeconds'].apply(
                     lambda x: f"{int(x//60)}:{x%60:06.3f}"
                 )
                 avg_laps = avg_laps.sort_values('LapTimeSeconds')
                 st.dataframe(
-                    avg_laps[['DriverName', 'Driver', 'Formatted Time']], 
+                    avg_laps[['Driver', 'Formatted Time']], 
                     hide_index=True,
                     column_config={
-                        'DriverName': 'Driver Name',
-                        'Driver': 'Code',
+                        'Driver': 'Driver Code',
                         'Formatted Time': 'Avg Lap'
                     }
                 )
-    
+
     # Tab 5: Strategy Simulator
     with tab5:
         st.header("AI-Powered Strategy Simulator")
