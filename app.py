@@ -295,6 +295,54 @@ def main():
                     f"Position Changes - {selected_race} {selected_year}"
                 )
                 st.plotly_chart(position_chart, use_container_width=True)
+            
+            # Track Speed Visualization
+            st.subheader("🏁 Track Speed Map")
+            st.info("Select a driver to see speed variations around the circuit on their fastest lap")
+            
+            # Driver selection for track speed map
+            speed_map_driver = st.selectbox(
+                "Select Driver for Speed Map",
+                selected_drivers,
+                help="Choose a driver to visualize their speed around the track",
+                key="speed_map_driver"
+            )
+            
+            if speed_map_driver:
+                with st.spinner(f"Loading track speed map for {speed_map_driver}..."):
+                    from utils.plotting import plot_track_speed_map
+                    
+                    speed_map_fig = plot_track_speed_map(
+                        session, 
+                        speed_map_driver,
+                        f"Track Speed Map - {speed_map_driver} - {selected_race} {selected_year}"
+                    )
+                    
+                    if speed_map_fig:
+                        st.pyplot(speed_map_fig, use_container_width=True)
+                        
+                        # Add explanation
+                        with st.expander("About Track Speed Maps"):
+                            st.markdown("""
+                            **Track Speed Map Explanation:**
+                            - **Colors represent speed**: Purple/blue = slower sections, Yellow/red = faster sections
+                            - **Black outline**: Shows the track layout
+                            - **Based on fastest lap**: Uses the driver's fastest lap for the visualization
+                            - **Speed variations**: Shows where drivers brake (blue) and accelerate (yellow/red)
+                            
+                            **Reading the Map:**
+                            - 🔵 **Blue sections**: Heavy braking zones (corners, chicanes)
+                            - 🟡 **Yellow sections**: Medium speed (corner exits, technical sections)  
+                            - 🔴 **Red sections**: High speed (straights, fast corners)
+                            
+                            **Use Cases:**
+                            - Compare braking points between drivers
+                            - Identify fastest sections of the track
+                            - Analyze racing lines and speed profiles
+                            - Understand track characteristics and layout
+                            """)
+                    else:
+                        st.warning(f"Could not generate speed map for {speed_map_driver}. This may be due to insufficient telemetry data.")
         else:
             st.warning("No lap data available for the selected drivers.")
     

@@ -9,6 +9,8 @@ import pandas as pd
 import numpy as np
 from plotly.subplots import make_subplots
 import streamlit as st
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 # F1 team colors for consistent visualization
 TEAM_COLORS = {
@@ -630,3 +632,119 @@ def create_summary_metrics(lap_data, session_info):
         st.error(f"Error creating summary metrics: {str(e)}")
         print(f"Error in create_summary_metrics: {str(e)}")
         return {}
+
+def plot_track_speed_map(session, driver, title="Track Speed Map"):
+    """
+    Create a track speed visualization showing speed variations around the circuit
+    
+    Args:
+        session: FastF1 session object
+        driver: Driver abbreviation (e.g., 'HAM', 'VER')
+        title: Chart title
+        
+    Returns:
+        matplotlib figure object for Streamlit display
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+        from matplotlib.collections import LineCollection
+        
+        # Get fastest lap for the driver
+        driver_laps = session.laps.pick_drivers(driver)
+        if driver_laps.empty:
+            st.warning(f"No lap data available for driver {driver}")
+            return None
+            
+        fastest_lap = driver_laps.pick_fastest()
+        if fastest_lap.empty:
+            st.warning(f"No fastest lap found for driver {driver}")
+            return None
+        
+        # Get telemetry data
+        telemetry = fastest_lap.get_telemetry()
+        if telemetry.empty:
+            st.warning(f"No telemetry data available for driver {driver}")
+            return None
+        
+        # Check for required columns
+        required_cols = ['X', 'Y', 'Speed']
+        missing_cols = [col for col in required_cols if col not in telemetry.columns]
+        if missing_cols:
+            st.warning(f"Missing telemetry columns: {missing_cols}")
+            return None
+        
+        # Extract coordinates and speed
+        x = telemetry['X'].values
+        y = telemetry['Y'].values  
+        speed = telemetry['Speed'].values
+        
+        # Remove any NaN values
+        valid_indices = ~(np.isnan(x) | np.isnan(y) | np.isnan(speed))
+        x = x[valid_indices]
+        y = y[valid_indices]
+        speed = speed[valid_indices]
+        
+        if len(x) < 2:
+            st.warning(f"Insufficient valid telemetry points for driver {driver}")
+            return None
+        
+        # Create line segments for coloring
+        points = np.array([x, y]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        
+        # Create the plot
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        # Set title and styling
+        fig.suptitle(title, size=16, weight='bold')
+        
+        # Turn off axis for cleaner look
+        ax.axis('off')
+        ax.set_aspect('equal')
+        
+        # Create background track line (black outline)
+        ax.plot(x, y, color='black', linestyle='-', linewidth=8, zorder=0, alpha=0.3)
+        
+        # Create speed-colored line segments
+        colormap = plt.cm.plasma
+        norm = plt.Normalize(speed.min(), speed.max())
+        
+        lc = LineCollection(segments[:-1], cmap=colormap, norm=norm,
+                           linestyle='-', linewidth=4, alpha=0.8)
+        lc.set_array(speed[:-1])  # Use speed values for coloring
+        
+        line = ax.add_collection(lc)
+        
+        # Add colorbar legend
+        cbar = plt.colorbar(line, ax=ax, orientation='horizontal', 
+                           pad=0.1, shrink=0.8, aspect=40)
+        cbar.set_label('Speed (km/h)', fontsize=12, weight='bold')
+        cbar.ax.tick_params(labelsize=10)
+        
+        # Add some statistics as text
+        ax.text(0.02, 0.98, f'Driver: {driver}', transform=ax.transAxes,
+                fontsize=12, weight='bold', verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        ax.text(0.02, 0.92, f'Max Speed: {speed.max():.1f} km/h', transform=ax.transAxes,
+                fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        ax.text(0.02, 0.86, f'Min Speed: {speed.min():.1f} km/h', transform=ax.transAxes,
+                fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        ax.text(0.02, 0.80, f'Avg Speed: {speed.mean():.1f} km/h', transform=ax.transAxes,
+                fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        # Adjust layout
+        plt.tight_layout()
+        
+        return fig
+        
+    except Exception as e:
+        st.error(f"Error creating track speed map: {str(e)}")
+        print(f"Error in plot_track_speed_map: {str(e)}")
+        return None
