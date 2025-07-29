@@ -6,7 +6,6 @@ import joblib
 import json
 import os
 
-# Import our custom utilities
 from utils.data_loading import (
     get_available_years, get_race_schedule, load_race_data, get_driver_list,
     get_lap_data, get_telemetry_data, get_strategy_data, get_race_results,
@@ -17,7 +16,6 @@ from utils.plotting import (
     plot_position_changes, plot_gap_analysis, create_summary_metrics
 )
 
-# Page configuration
 st.set_page_config(
     page_title="F1 Data Analysis Platform",
     page_icon="🏁",
@@ -47,7 +45,6 @@ st.markdown("""
 def main():
     """Main application function"""
     
-    # Helper function to convert driver abbreviations to display names
     def get_driver_display_name(driver_abbrev, drivers_info):
         """Convert driver abbreviation to display format: 'Full Name (ABV)'"""
         for info in drivers_info:
@@ -59,17 +56,14 @@ def main():
         """Convert list of driver abbreviations to display names"""
         return [get_driver_display_name(driver, drivers_info) for driver in driver_list]
     
-    # Header
     st.markdown('<h1 class="main-header">F1 Data Analysis Platform</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Interactive Formula 1 Data Visualization & Strategy Simulation</p>', unsafe_allow_html=True)
     
-    # Sidebar configuration
     with st.sidebar:
         st.header("Configuration")
         
         st.divider()
         
-        # Year selection
         available_years = get_available_years()
         selected_year = st.selectbox(
             "Select Year",
@@ -78,7 +72,6 @@ def main():
             help="Choose the F1 season year for analysis"
         )
         
-        # Race selection
         with st.spinner("Loading race schedule..."):
             races = get_race_schedule(selected_year)
         
@@ -102,14 +95,12 @@ def main():
         
         selected_race = races[selected_race_idx]['EventName']
         
-        # Load race data
         session = load_race_data(selected_year, selected_race)
         
         if session is None:
             st.error("Could not load race data. Please try a different race.")
             st.stop()
         
-        # Driver selection
         drivers_info = get_driver_list(session)
         if not drivers_info:
             st.error("No driver data available for this race.")
@@ -118,7 +109,6 @@ def main():
         driver_options = [f"{info['full_name']} (#{info['driver_number']}) - {info['team']}" 
                          for info in drivers_info]
         
-        # Driver selection controls
         col1, col2 = st.columns([1, 1])
         with col1:
             if st.button("Add All Drivers", help="Select all available drivers"):
@@ -128,7 +118,6 @@ def main():
                 st.session_state.selected_all_drivers = False
                 st.session_state.clear_drivers = True
         
-        # Determine default selection
         default_selection = []
         if getattr(st.session_state, 'selected_all_drivers', False):
             default_selection = list(range(len(driver_options)))
@@ -152,12 +141,6 @@ def main():
         
         st.markdown("---")
         
-        # Analysis options
-        st.subheader("Analysis Options")
-        show_race_info = st.checkbox("Show Race Information", value=True)
-        show_summary_stats = st.checkbox("Show Summary Statistics", value=True)
-    
-    # Main content tabs
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "Pace Analysis", 
         "Tyre Strategy", 
@@ -166,87 +149,74 @@ def main():
         "Strategy Simulator"
     ])
     
-    # Load common data
     session_info = get_session_info(session)
     
-    # Show race information
-    if show_race_info and session_info:
-        st.info(
-            f"Currently Viewing: {session_info['event_name']} {selected_year} | "
-            f"{session_info['location']}, {session_info['country']} | "
-            f"{session_info['date']} | "
-            f"Total Laps: {session_info['total_laps']}"
-        )
+    st.info(
+        f"Currently Viewing: {session_info['event_name']} {selected_year} | "
+        f"{session_info['location']}, {session_info['country']} | "
+        f"{session_info['date']} | "
+        f"Total Laps: {session_info['total_laps']}"
+    )
     
-    # Tab 1: Pace Analysis
     with tab1:
         st.header("Lap Time & Pace Analysis")
         
-        # Load lap data
         with st.spinner("Loading lap data..."):
             lap_data = get_lap_data(session, selected_drivers)
         
         if not lap_data.empty:
-            # Summary statistics
-            if show_summary_stats:
-                metrics = create_summary_metrics(lap_data, session_info)
-                
-                if metrics:
-                    col1, col2, col3, col4 = st.columns(4)
-                    
-                    if 'fastest_lap' in metrics:
-                        with col1:
-                            st.metric(
-                                "Fastest Lap",
-                                metrics['fastest_lap']['time'],
-                                f"{metrics['fastest_lap']['driver']} (Lap {metrics['fastest_lap']['lap']})"
-                            )
-                    
-                    if 'fastest_average' in metrics:
-                        with col2:
-                            st.metric(
-                                "Best Average",
-                                metrics['fastest_average']['time'],
-                                metrics['fastest_average']['driver']
-                            )
-                    
-                    if 'most_consistent' in metrics:
-                        with col3:
-                            st.metric(
-                                "Most Consistent",
-                                metrics['most_consistent']['std_dev'],
-                                metrics['most_consistent']['driver']
-                            )
-                    
-                    with col4:
-                        st.metric(
-                            "Total Laps",
-                            metrics.get('race_info', {}).get('total_laps', 'N/A'),
-                            "Race Distance"
-                        )
+            metrics = create_summary_metrics(lap_data, session_info)
             
-            # Pace comparison chart
+            if metrics:
+                col1, col2, col3, col4 = st.columns(4)
+                
+                if 'fastest_lap' in metrics:
+                    with col1:
+                        st.metric(
+                            "Fastest Lap",
+                            metrics['fastest_lap']['time'],
+                            f"{metrics['fastest_lap']['driver']} (Lap {metrics['fastest_lap']['lap']})"
+                        )
+                
+                if 'fastest_average' in metrics:
+                    with col2:
+                        st.metric(
+                            "Best Average",
+                            metrics['fastest_average']['time'],
+                            metrics['fastest_average']['driver']
+                        )
+                
+                if 'most_consistent' in metrics:
+                    with col3:
+                        st.metric(
+                            "Most Consistent",
+                            metrics['most_consistent']['std_dev'],
+                            metrics['most_consistent']['driver']
+                        )
+                
+                with col4:
+                    st.metric(
+                        "Total Laps",
+                        metrics.get('race_info', {}).get('total_laps', 'N/A'),
+                        "Race Distance"
+                    )
+            
             pace_chart = plot_pace_comparison(
                 lap_data, 
                 f"Lap Time Comparison - {selected_race} {selected_year}"
             )
             st.plotly_chart(pace_chart, use_container_width=True)
             
-            # Gap analysis
             if len(selected_drivers) > 1:
                 st.subheader("🏁 Gap Analysis")
                 
-                # Filter lap data to selected drivers first
                 filtered_lap_data = lap_data[lap_data['Driver'].isin(selected_drivers)].copy()
                 
-                # Check what drivers are actually in the lap data for debugging
                 actual_drivers_in_data = lap_data['Driver'].unique() if 'Driver' in lap_data.columns else []
                 
-                # If no data for selected drivers, show all data with a note
                 if filtered_lap_data.empty and not lap_data.empty:
-                    st.warning("⚠️ No lap data found for the specific selected drivers. Showing all available drivers for gap analysis.")
+                    st.warning("⚠️ No lap data found for some selected drivers. Showing all available drivers for gap analysis.")
                     
-                    # Use all available drivers from the lap data
                     available_drivers = lap_data['Driver'].unique()[:10]  # Limit to first 10 for readability
                     filtered_lap_data = lap_data[lap_data['Driver'].isin(available_drivers)].copy()
                     
@@ -267,7 +237,6 @@ def main():
                         )
                         st.plotly_chart(gap_chart, use_container_width=True)
                         
-                        # Show note about driver selection mismatch
                         with st.expander("Driver Selection Information"):
                             selected_display_names = get_driver_display_names(selected_drivers, drivers_info)
                             st.markdown(f"""
@@ -283,7 +252,6 @@ def main():
                         st.warning("Need at least 2 drivers for gap analysis.")
                 
                 elif not filtered_lap_data.empty:
-                    # Normal case - we have data for selected drivers
                     selected_display_names = get_driver_display_names(selected_drivers, drivers_info)
                     reference_driver_display = st.selectbox(
                         "Reference Driver for Gap Analysis",
@@ -291,7 +259,6 @@ def main():
                         help="Select the driver to use as reference for gap calculations"
                     )
                     
-                    # Convert back to abbreviation for analysis
                     reference_driver = next(
                         (abbrev for abbrev, display in zip(selected_drivers, selected_display_names) 
                          if display == reference_driver_display), 
@@ -309,7 +276,6 @@ def main():
             else:
                 st.info("Select at least 2 drivers to see gap analysis")
             
-            # Position changes (if position data available)
             if 'Position' in lap_data.columns:
                 position_chart = plot_position_changes(
                     lap_data,
@@ -317,11 +283,9 @@ def main():
                 )
                 st.plotly_chart(position_chart, use_container_width=True)
             
-            # Track Speed Visualization
             st.subheader("🏁 Track Speed Map")
             st.info("Select a driver to see speed variations around the circuit on their fastest lap")
             
-            # Driver selection for track speed map
             selected_display_names = get_driver_display_names(selected_drivers, drivers_info)
             speed_map_driver_display = st.selectbox(
                 "Select Driver for Speed Map",
@@ -330,7 +294,6 @@ def main():
                 key="speed_map_driver"
             )
             
-            # Convert back to abbreviation for analysis
             speed_map_driver = next(
                 (abbrev for abbrev, display in zip(selected_drivers, selected_display_names) 
                  if display == speed_map_driver_display), 
@@ -351,7 +314,6 @@ def main():
                     if speed_map_fig:
                         st.pyplot(speed_map_fig, use_container_width=True)
                         
-                        # Add explanation
                         with st.expander("About Track Speed Maps"):
                             st.markdown("""
                             **Track Speed Map Explanation:**
@@ -376,7 +338,6 @@ def main():
         else:
             st.warning("No lap data available for the selected drivers.")
     
-    # Tab 2: Tyre Strategy
     with tab2:
         st.header("Tyre Strategy Analysis")
         
@@ -384,14 +345,12 @@ def main():
             strategy_data = get_strategy_data(session, selected_drivers)
         
         if not strategy_data.empty:
-            # Strategy visualization
             strategy_chart = plot_tyre_strategy(
                 strategy_data,
                 f"Tyre Strategy - {selected_race} {selected_year}"
             )
             st.plotly_chart(strategy_chart, use_container_width=True)
             
-            # Strategy statistics
             st.subheader("Strategy Statistics")
             
             strategy_stats = []
@@ -419,11 +378,9 @@ def main():
         st.header("Detailed Telemetry Analysis")
         
         if len(selected_drivers) > 0:
-            # Performance note for many drivers
             if len(selected_drivers) > 10:
                 st.info(f"Note: You have selected {len(selected_drivers)} drivers. Telemetry visualization may be dense with many drivers. Consider selecting fewer drivers for clearer analysis.")
             
-            # Lap selection for telemetry
             max_laps = session_info.get('total_laps', 50)
             selected_lap = st.slider(
                 "Select Lap for Telemetry Analysis",
@@ -433,7 +390,6 @@ def main():
                 help="Choose a specific lap to analyze detailed telemetry data"
             )
             
-            # Load telemetry data for selected drivers and lap
             with st.spinner("Loading telemetry data..."):
                 telemetry_dict = {}
                 drivers_without_data = []
@@ -449,7 +405,6 @@ def main():
                                          if info['abbreviation'] == driver)
                         drivers_without_data.append(f"{driver_name} ({driver})")
                 
-                # Show data availability status
                 if drivers_without_data:
                     st.info(f"Telemetry Data Status: Showing data for {len(telemetry_dict)} out of {len(selected_drivers)} selected drivers for lap {selected_lap}. "
                            f"Missing data for: {', '.join(drivers_without_data[:5])}"
@@ -464,7 +419,6 @@ def main():
                 )
                 st.plotly_chart(telemetry_chart, use_container_width=True)
                 
-                # Telemetry statistics
                 st.subheader("Telemetry Statistics")
                 
                 telemetry_stats = []
@@ -498,60 +452,45 @@ def main():
     with tab4:
         st.header("Race Results & Analysis")
         
-        # Data source information
         st.info("Data Source: All race results are retrieved from the official Formula 1 timing data via FastF1 API and reflect the actual race outcomes.")
         
-        # Race results
         with st.spinner("Loading race results..."):
             race_results = get_race_results(session)
         
         if not race_results.empty:
-            # Race results header
             st.subheader(f"Final Race Results - {selected_race} {selected_year}")
             
-            # Winner information
             if not race_results.empty:
                 winner = race_results.iloc[0]
-                # Get driver abbreviation from race results
                 driver_abbrev = getattr(winner, 'Abbreviation', getattr(winner, 'Driver', 'Unknown'))
                 
-                # Use session.get_driver() to get full driver information
                 try:
                     if driver_abbrev != 'Unknown' and session:
                         driver_data = session.get_driver(driver_abbrev)
                         driver_name = f"{driver_data['FirstName']} {driver_data['LastName']}"
                         team_name = driver_data['TeamName']
                     else:
-                        # Fallback to original method if session method fails
                         driver_name = getattr(winner, 'FullName', driver_abbrev)
                         team_name = getattr(winner, 'TeamName', getattr(winner, 'Team', 'Unknown'))
                 except Exception:
-                    # Fallback to original method if session method fails
                     driver_name = getattr(winner, 'FullName', driver_abbrev)
                     team_name = getattr(winner, 'TeamName', getattr(winner, 'Team', 'Unknown'))
                 
                 st.success(f"Winner: {driver_name} ({driver_abbrev}) - {team_name}")
-            
-            
-            # Process race results to show total times instead of gaps
+                        
             display_results = race_results.copy()
             
-            # Convert Time column to show actual total race time for each driver
             if 'Time' in display_results.columns:
                 winner_time = None
                 total_times = []
                 
                 for idx, row in display_results.iterrows():
-                    # Safe position comparison - handle NA values
                     position = row['Position']
                     if pd.notna(position) and position == 1:
-                        # Winner's time is the reference - clean up the format
                         winner_time = row['Time']
-                        # Clean up winner time format (remove "0 days" prefix)
                         winner_time_str = str(winner_time)
                         if "0 days" in winner_time_str:
                             winner_time_str = winner_time_str.replace("0 days ", "")
-                        # Remove microseconds if present (keep only 3 decimal places)
                         if "." in winner_time_str:
                             time_parts = winner_time_str.split(".")
                             if len(time_parts[1]) > 3:
@@ -559,38 +498,29 @@ def main():
                         total_times.append(winner_time_str)
                     else:
                         try:
-                            # For other drivers, handle gaps
                             gap_str = str(row['Time'])
                             
-                            # Clean up gap format
                             if "0 days" in gap_str:
                                 gap_str = gap_str.replace("0 days ", "")
                             
-                            # Check if it's a time gap (starts with +) or a total time
                             if '+' in gap_str and winner_time:
-                                # It's a gap - clean it up
                                 gap_clean = gap_str.replace('+', '').replace('s', '').strip()
                                 
-                                # Convert to seconds format
                                 if ':' in gap_clean:
-                                    # Format like "00:05.234" - convert to seconds
                                     parts = gap_clean.split(':')
                                     if len(parts) == 2:
                                         minutes = float(parts[0])
                                         seconds = float(parts[1])
                                         total_gap_seconds = minutes * 60 + seconds
                                         if total_gap_seconds >= 60:
-                                            # Show as minutes:seconds if >= 1 minute
                                             mins = int(total_gap_seconds // 60)
                                             secs = total_gap_seconds % 60
                                             gap_display = f"+{mins}:{secs:06.3f}"
                                         else:
-                                            # Show as seconds if < 1 minute
                                             gap_display = f"+{total_gap_seconds:.3f}"
                                     else:
                                         gap_display = f"+{gap_clean}"
                                 else:
-                                    # Already in seconds format
                                     try:
                                         gap_seconds = float(gap_clean)
                                         if gap_seconds >= 60:
@@ -604,7 +534,6 @@ def main():
                                 
                                 total_times.append(gap_display)
                             else:
-                                # It's a total time - clean up format
                                 clean_time = gap_str
                                 if "." in clean_time:
                                     time_parts = clean_time.split(".")
@@ -612,19 +541,15 @@ def main():
                                         clean_time = f"{time_parts[0]}.{time_parts[1][:3]}"
                                 total_times.append(clean_time)
                         except (ValueError, AttributeError, TypeError):
-                            # Fallback to original time format if parsing fails
                             original_time = str(row['Time'])
                             if "0 days" in original_time:
                                 original_time = original_time.replace("0 days ", "")
                             total_times.append(original_time)
                 
-                # Replace Time column with formatted times
                 display_results['FormattedTime'] = total_times
                 
-                # Select and rename columns for display - use available FastF1 columns
                 available_result_cols = race_results.columns.tolist()
                 
-                # Map to available columns
                 display_cols = []
                 col_mapping = {}
                 
@@ -632,7 +557,6 @@ def main():
                     display_cols.append('Position')
                     col_mapping['Position'] = 'Pos'
                 
-                # Try different driver name columns
                 if 'FullName' in available_result_cols:
                     display_cols.append('FullName')
                     col_mapping['FullName'] = 'Driver'
@@ -643,7 +567,6 @@ def main():
                     display_cols.append('Driver')
                     col_mapping['Driver'] = 'Driver'
                 
-                # Try abbreviation columns
                 if 'Abbreviation' in available_result_cols:
                     display_cols.append('Abbreviation')
                     col_mapping['Abbreviation'] = 'Code'
@@ -651,7 +574,6 @@ def main():
                     display_cols.append('Driver')
                     col_mapping['Driver'] = 'Code'
                 
-                # Try team columns
                 if 'TeamName' in available_result_cols:
                     display_cols.append('TeamName')
                     col_mapping['TeamName'] = 'Team'
@@ -659,7 +581,6 @@ def main():
                     display_cols.append('Team')
                     col_mapping['Team'] = 'Team'
                 
-                # Add other useful columns if available
                 if 'FormattedTime' in display_results.columns:
                     display_cols.append('FormattedTime')
                     col_mapping['FormattedTime'] = 'Time/Gap'
@@ -668,24 +589,19 @@ def main():
                     display_cols.append('Points')
                     col_mapping['Points'] = 'Points'
                 
-                # Create display dataframe with available columns
                 available_display_cols = [col for col in display_cols if col in display_results.columns]
                 formatted_results = display_results[available_display_cols].copy()
                 
-                # Rename columns for better display
                 formatted_results = formatted_results.rename(columns=col_mapping)
                 
                 st.dataframe(formatted_results, use_container_width=True, hide_index=True)
             else:
-                # Fallback to original display if Time column processing fails
-                # Use the same flexible column detection as above
                 available_result_cols = race_results.columns.tolist()
                 fallback_cols = []
                 
                 if 'Position' in available_result_cols:
                     fallback_cols.append('Position')
                 
-                # Try different driver name columns for fallback
                 if 'FullName' in available_result_cols:
                     fallback_cols.append('FullName')
                 elif 'DriverName' in available_result_cols:
@@ -693,13 +609,11 @@ def main():
                 elif 'Driver' in available_result_cols:
                     fallback_cols.append('Driver')
                 
-                # Try abbreviation columns
                 if 'Abbreviation' in available_result_cols:
                     fallback_cols.append('Abbreviation')
                 elif 'Driver' in available_result_cols and 'Driver' not in fallback_cols:
                     fallback_cols.append('Driver')
                 
-                # Try team columns
                 if 'TeamName' in available_result_cols:
                     fallback_cols.append('TeamName')
                 elif 'Team' in available_result_cols:
@@ -710,7 +624,6 @@ def main():
                 
                 if fallback_cols:
                     display_results = race_results[fallback_cols].copy()
-                    # Create generic column names
                     generic_names = []
                     for col in fallback_cols:
                         if col in ['Position']:
@@ -732,7 +645,6 @@ def main():
                     st.warning("Race results data format not recognized")
                     st.dataframe(race_results, use_container_width=True, hide_index=True)
         
-        # Additional race statistics
         if not lap_data.empty:
             st.subheader("Race Statistics")
             
@@ -782,19 +694,16 @@ def main():
         
         st.info("Advanced LightGBM Model: This simulator uses production-grade machine learning with 97% accuracy to predict tyre performance.")
         
-        # Check for model files
         model_path = 'models/tyre_model_lgbm.joblib'
         preprocessor_path = 'models/preprocessing_pipeline.joblib'
         feature_names_path = 'models/feature_names.json'
         
         if os.path.exists(model_path) and os.path.exists(preprocessor_path):
             try:
-                # Load models
                 with st.spinner("Loading AI models..."):
                     model = joblib.load(model_path)
                     preprocessor = joblib.load(preprocessor_path)
                     
-                    # Load feature information
                     if os.path.exists(feature_names_path):
                         with open(feature_names_path, 'r') as f:
                             feature_info = json.loads(f.read())
@@ -803,7 +712,6 @@ def main():
                 
                 st.success("Advanced LightGBM Model loaded successfully! (R² = 97.19%)")
                 
-                # Model information
                 if feature_info:
                     with st.expander("Model Information"):
                         col1, col2 = st.columns(2)
@@ -816,7 +724,6 @@ def main():
                             st.metric("Circuits", "21")
                             st.metric("MAE", "0.777s")
                 
-                # Simulation parameters
                 col1, col2 = st.columns(2)
                 
                 with col1:
@@ -835,7 +742,6 @@ def main():
                     )
                 
                 with col2:
-                    # Circuit selection
                     circuit_options = [
                         'Bahrain Grand Prix', 'Saudi Arabian Grand Prix', 'Australian Grand Prix',
                         'Emilia Romagna Grand Prix', 'Miami Grand Prix', 'Spanish Grand Prix',
@@ -860,7 +766,6 @@ def main():
                     )
                 
                 if st.button("Run Simulation", type="primary"):
-                    # Create simulation data
                     sim_data = []
                     base_lap_number = 10
                     
@@ -877,23 +782,19 @@ def main():
                     
                     sim_df = pd.concat(sim_data, ignore_index=True)
                     
-                    # Make predictions
                     try:
                         X_processed = preprocessor.transform(sim_df)
                         predictions = model.predict(X_processed)
                         
-                        # Apply driver skill adjustment
                         if driver_simulation == 'Championship Contender':
                             predictions = predictions * 0.995
                         elif driver_simulation == 'Rookie':
                             predictions = predictions * 1.005
                         
-                        # Create visualization
                         import plotly.graph_objects as go
                         
                         fig = go.Figure()
                         
-                        # Main prediction line
                         fig.add_trace(go.Scatter(
                             x=list(range(1, stint_length + 1)),
                             y=predictions,
@@ -903,7 +804,6 @@ def main():
                             marker=dict(size=8)
                         ))
                         
-                        # Confidence band
                         prediction_std = np.std(predictions) * 0.1
                         fig.add_trace(go.Scatter(
                             x=list(range(1, stint_length + 1)) + list(range(stint_length, 0, -1)),
@@ -926,7 +826,6 @@ def main():
                         
                         st.plotly_chart(fig, use_container_width=True)
                         
-                        # Statistics
                         st.subheader("Simulation Results")
                         
                         col1, col2, col3, col4 = st.columns(4)
@@ -940,7 +839,6 @@ def main():
                         with col4:
                             st.metric("Avg Degradation/Lap", f"{(predictions[-1] - predictions[0]) / stint_length:.4f}s")
                         
-                        # Performance analysis
                         col1, col2 = st.columns(2)
                         with col1:
                             st.metric("Optimal Window", f"Laps 1-{min(15, stint_length)}")
@@ -951,7 +849,6 @@ def main():
                             else:
                                 st.metric("Performance Cliff", "Beyond stint")
                         
-                        # Detailed predictions
                         with st.expander("Detailed Lap-by-Lap Predictions"):
                             prediction_df = pd.DataFrame({
                                 'Stint Lap': range(1, stint_length + 1),
@@ -971,7 +868,6 @@ def main():
                         st.error(f"Error running simulation: {str(e)}")
                         st.info("Please check that all model files are properly trained and saved.")
                 
-                # Model information
                 with st.expander("About the AI Model"):
                     st.markdown("""
                     **Model Information:**
@@ -1022,11 +918,9 @@ def main():
             - Advanced categorical encoding for robust predictions
             """)
             
-            # Demo simulation
             if st.button("Show Demo Simulation", help="Display a sample simulation with mock data"):
                 demo_laps = list(range(1, 31))
                 
-                # Realistic degradation model for demo
                 compound_factors = {'SOFT': (84.0, 0.08), 'MEDIUM': (85.5, 0.045), 'HARD': (87.0, 0.025)}
                 
                 demo_compound = st.selectbox(
@@ -1038,7 +932,6 @@ def main():
                 
                 base_time, degradation_rate = compound_factors[demo_compound]
                 
-                # Realistic F1 tyre degradation curve
                 demo_predictions = []
                 for lap in demo_laps:
                     linear_deg = base_time + (lap * degradation_rate)
@@ -1071,7 +964,6 @@ def main():
                 
                 st.plotly_chart(fig, use_container_width=True)
                 
-                # Demo statistics
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric("Fresh Time", f"{demo_predictions[0]:.3f}s")
@@ -1084,7 +976,6 @@ def main():
                 
                 st.success("This realistic demo shows F1 tyre degradation patterns. Train the actual model for circuit-specific predictions!")
 
-    # Footer
     st.markdown("---")
     st.markdown(
         """
@@ -1093,6 +984,7 @@ def main():
             <p>Data powered by <a href='https://github.com/theOehrly/Fast-F1' target='_blank'>FastF1</a> | 
                Visualizations by <a href='https://plotly.com' target='_blank'>Plotly</a> | 
                Interface by <a href='https://streamlit.io' target='_blank'>Streamlit</a></p>
+               Created by <a href='https://nishanthgandhe.me' target='_blank'>Nishanth Gandhe</a></p>
         </div>
         """, 
         unsafe_allow_html=True

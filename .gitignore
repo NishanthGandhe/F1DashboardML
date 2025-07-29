@@ -281,3 +281,5 @@ uploads/
 
 # Local configuration overrides
 local_config.json
+
+CHANGE_LOG.md

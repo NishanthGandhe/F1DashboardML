@@ -12,7 +12,6 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-# F1 team colors for consistent visualization
 TEAM_COLORS = {
     'Red Bull Racing': '#0600EF',
     'Mercedes': '#00D2BE', 
@@ -26,7 +25,6 @@ TEAM_COLORS = {
     'Haas': '#FFFFFF'
 }
 
-# Tyre compound colors
 TYRE_COLORS = {
     'SOFT': '#FF3333',
     'MEDIUM': '#FFF200', 
@@ -39,13 +37,10 @@ def get_driver_color(team_name, driver_idx=0):
     """Get color for a driver based on team, with slight variations for teammates"""
     base_color = TEAM_COLORS.get(team_name, f'#{hash(team_name) % 0xFFFFFF:06x}')
     
-    # For teammates, slightly modify the base color
     if driver_idx > 0:
-        # Make second driver slightly darker/lighter
         if base_color.startswith('#'):
             hex_color = base_color[1:]
             rgb = [int(hex_color[i:i+2], 16) for i in (0, 2, 4)]
-            # Darken by 20%
             rgb = [max(0, int(c * 0.8)) for c in rgb]
             return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
     
@@ -56,7 +51,6 @@ def plot_pace_comparison(lap_data, title="Lap Time Comparison"):
     if lap_data.empty:
         return go.Figure()
     
-    # Filter out NaN lap times at the beginning
     valid_lap_data = lap_data.dropna(subset=['LapTimeSeconds']).copy()
     
     if valid_lap_data.empty:
@@ -82,33 +76,27 @@ def plot_pace_comparison(lap_data, title="Lap Time Comparison"):
     for driver in drivers:
         driver_laps = valid_lap_data[valid_lap_data['Driver'] == driver].copy()
         
-        # Additional filtering for this driver's data
         driver_laps = driver_laps.dropna(subset=['LapTimeSeconds'])
         
         if driver_laps.empty:
-            continue  # Skip this driver if no valid data
+            continue  
             
         team = driver_laps['Team'].iloc[0] if 'Team' in driver_laps.columns else 'Unknown'
         
-        # Track how many drivers from this team we've seen
         driver_idx = team_driver_count.get(team, 0)
         team_driver_count[team] = driver_idx + 1
         
         color = get_driver_color(team, driver_idx)
         
-        # Create safe custom data with proper error handling
         formatted_times = []
         compounds = []
         tyre_ages = []
         
         for _, row in driver_laps.iterrows():
-            # Safe time formatting
             formatted_times.append(format_lap_time_safe(row['LapTimeSeconds']))
             
-            # Safe compound extraction
             compounds.append(row.get('Compound', 'Unknown'))
             
-            # Safe tyre age extraction
             if 'TyreAge' in driver_laps.columns:
                 tyre_age = row.get('TyreAge', 'N/A')
                 tyre_ages.append(str(tyre_age) if pd.notna(tyre_age) else 'N/A')
@@ -119,7 +107,7 @@ def plot_pace_comparison(lap_data, title="Lap Time Comparison"):
             x=driver_laps['LapNumber'],
             y=driver_laps['LapTimeSeconds'],
             mode='lines+markers',
-            name=f"{driver}",  # Fixed: Use driver abbreviation only
+            name=f"{driver}", 
             line=dict(color=color, width=2),
             marker=dict(size=4),
             hovertemplate=(
@@ -154,18 +142,12 @@ def plot_tyre_strategy(strategy_data, title="Tyre Strategy Comparison"):
     if strategy_data.empty:
         return go.Figure()
     
-    # Debug: Check what columns are available
-    print(f"Strategy data columns: {strategy_data.columns.tolist()}")
-    
-    # Check for required columns based on actual data structure
     required_columns = ['Driver', 'Compound']
     
-    # The actual data has StartLap and EndLap columns, not LapNumber
     if 'StartLap' not in strategy_data.columns or 'EndLap' not in strategy_data.columns:
         st.error("StartLap and EndLap columns not found in strategy data")
         return go.Figure()
     
-    # Check if all required columns exist
     missing_columns = [col for col in required_columns if col not in strategy_data.columns]
     if missing_columns:
         st.error(f"Missing columns in strategy data: {missing_columns}")
@@ -182,7 +164,6 @@ def plot_tyre_strategy(strategy_data, title="Tyre Strategy Comparison"):
         if driver_stints.empty:
             continue
         
-        # Plot each stint using StartLap and EndLap directly
         for _, stint in driver_stints.iterrows():
             fig.add_trace(go.Scatter(
                 x=[stint['StartLap'], stint['EndLap']],
@@ -203,7 +184,6 @@ def plot_tyre_strategy(strategy_data, title="Tyre Strategy Comparison"):
                 )
             ))
     
-    # Add legend for compounds
     for compound, color in TYRE_COLORS.items():
         if compound in strategy_data['Compound'].values:
             fig.add_trace(go.Scatter(
@@ -235,12 +215,10 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
     if not telemetry_data_dict:
         return go.Figure()
     
-    # Debug: Check what columns are available in telemetry data
     for driver, telemetry in telemetry_data_dict.items():
         print(f"Telemetry columns for {driver}: {telemetry.columns.tolist()}")
-        break  # Just check one driver
+        break 
     
-    # Create subplot with secondary y-axis
     fig = make_subplots(
         rows=4, cols=1,
         shared_xaxes=True,
@@ -257,21 +235,17 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
             
         color = colors[idx % len(colors)]
         
-        # Check what distance column is available
         distance_col = None
         if 'Distance' in telemetry.columns:
             distance_col = 'Distance'
-            # Convert to km if it's in meters
-            distance_data = telemetry['Distance'] / 1000  # FastF1 Distance is in meters
+            distance_data = telemetry['Distance'] / 1000 
         elif 'DistanceKm' in telemetry.columns:
             distance_col = 'DistanceKm'
             distance_data = telemetry['DistanceKm']
         else:
-            # Fallback: create distance based on index
-            distance_data = pd.Series(range(len(telemetry))) * 0.01  # Approximate distance
+            distance_data = pd.Series(range(len(telemetry))) * 0.01 
             st.warning(f"No distance column found for {driver}, using approximation")
         
-        # Check required columns exist
         required_cols = ['Speed', 'Throttle', 'Brake', 'nGear']
         missing_cols = [col for col in required_cols if col not in telemetry.columns]
         
@@ -279,7 +253,6 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
             st.warning(f"Missing telemetry columns for {driver}: {missing_cols}")
             continue
         
-        # Speed
         fig.add_trace(
             go.Scatter(
                 x=distance_data,
@@ -291,7 +264,6 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
             row=1, col=1
         )
         
-        # Throttle
         fig.add_trace(
             go.Scatter(
                 x=distance_data,
@@ -304,7 +276,6 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
             row=2, col=1
         )
         
-        # Brake
         fig.add_trace(
             go.Scatter(
                 x=distance_data,
@@ -317,7 +288,6 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
             row=3, col=1
         )
         
-        # Gear
         fig.add_trace(
             go.Scatter(
                 x=distance_data,
@@ -366,7 +336,7 @@ def plot_position_changes(lap_data, title="Position Changes Throughout Race"):
             x=driver_laps['LapNumber'],
             y=driver_laps['Position'],
             mode='lines+markers',
-            name=f"{driver}",  # Fixed: Use driver abbreviation only
+            name=f"{driver}", 
             line=dict(color=color, width=2),
             marker=dict(size=4)
         ))
@@ -375,7 +345,7 @@ def plot_position_changes(lap_data, title="Position Changes Throughout Race"):
         title=title,
         xaxis_title="Lap Number",
         yaxis_title="Position",
-        yaxis=dict(autorange="reversed"),  # Position 1 at top
+        yaxis=dict(autorange="reversed"),  
         hovermode='closest',
         showlegend=True,
         height=600,
@@ -389,12 +359,7 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
     if lap_data.empty:
         st.warning("No lap data available for gap analysis")
         return go.Figure()
-    
-    # Debug: Show available columns and drivers
-    print(f"Gap analysis - available columns: {lap_data.columns.tolist()}")
-    print(f"Gap analysis - available drivers: {lap_data['Driver'].unique().tolist()}")
-    
-    # Check for required columns
+        
     required_columns = ['Driver', 'LapNumber']
     missing_columns = [col for col in required_columns if col not in lap_data.columns]
     
@@ -402,13 +367,11 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
         st.warning(f"Gap analysis requires columns: {missing_columns}")
         return go.Figure()
     
-    # Check for lap time column
     time_col = None
     if 'LapTimeSeconds' in lap_data.columns:
         time_col = 'LapTimeSeconds'
     elif 'LapTime' in lap_data.columns:
         time_col = 'LapTime'
-        # Convert to seconds if needed
         if lap_data[time_col].dtype == 'object':
             try:
                 lap_data = lap_data.copy()
@@ -425,24 +388,18 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
     
     fig = go.Figure()
     
-    # Get available drivers from the data
     available_drivers = lap_data['Driver'].unique()
     
-    # If no reference driver specified, or specified driver not in data, use the best available
     if reference_driver is None or reference_driver not in available_drivers:
-        # Find who was leading most laps or has fastest average time
         if 'Position' in lap_data.columns:
-            # Safe position filtering - handle NA values
             valid_positions = lap_data.dropna(subset=['Position'])
             if not valid_positions.empty:
                 leader_counts = valid_positions[valid_positions['Position'] == 1]['Driver'].value_counts()
                 reference_driver = leader_counts.index[0] if not leader_counts.empty else available_drivers[0]
             else:
-                # No valid position data, use fastest average
                 avg_times = lap_data.groupby('Driver')[time_col].mean()
                 reference_driver = avg_times.idxmin()
         else:
-            # Use driver with fastest average lap time
             avg_times = lap_data.groupby('Driver')[time_col].mean()
             reference_driver = avg_times.idxmin()
         
@@ -451,8 +408,7 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
         
         st.info(f"Reference driver adjusted to: {reference_driver} (available in data)")
     
-    # Filter to only selected drivers if this data is filtered
-    if len(available_drivers) > 10:  # If we have many drivers, this might be full race data
+    if len(available_drivers) > 10:
         st.info(f"Using reference driver: {reference_driver}")
     
     team_driver_count = {}
@@ -468,7 +424,6 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
         if driver_laps.empty or ref_laps.empty:
             continue
         
-        # Calculate cumulative gap for each lap
         gaps = []
         lap_numbers = []
         cumulative_gap = 0
@@ -483,8 +438,7 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
                 gaps.append(cumulative_gap)
                 lap_numbers.append(lap_num)
         
-        if gaps and len(gaps) > 1:  # Only plot if we have multiple data points
-            # Get team for coloring
+        if gaps and len(gaps) > 1: 
             team = driver_laps['Team'].iloc[0] if 'Team' in driver_laps.columns else 'Unknown'
             driver_idx = team_driver_count.get(team, 0)
             team_driver_count[team] = driver_idx + 1
@@ -502,7 +456,6 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
             ))
             drivers_plotted += 1
     
-    # Add reference line at 0
     if drivers_plotted > 0:
         fig.add_hline(y=0, line_dash="dash", line_color="gray", 
                       annotation_text=f"Reference: {reference_driver}")
@@ -517,7 +470,6 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
             template='plotly_white'
         )
     else:
-        # No data to plot
         st.warning(f"No valid gap data found for comparison with {reference_driver}")
         fig.add_annotation(
             text=f"No gap data available<br>Reference driver: {reference_driver}<br>Available drivers: {available_drivers.tolist()}",
@@ -543,15 +495,10 @@ def create_summary_metrics(lap_data, session_info):
         if lap_data.empty:
             return {}
         
-        # Debug: Check what columns are available
-        print(f"Summary metrics - lap data columns: {lap_data.columns.tolist()}")
-        
-        # Check for required columns
         if 'LapTimeSeconds' not in lap_data.columns:
             st.error("LapTimeSeconds column not found in lap data")
             return {}
         
-        # Filter out NaN lap times
         valid_laps = lap_data.dropna(subset=['LapTimeSeconds'])
         
         if valid_laps.empty:
@@ -560,18 +507,15 @@ def create_summary_metrics(lap_data, session_info):
         
         metrics = {}
         
-        # Get fastest lap
         fastest_lap_idx = valid_laps['LapTimeSeconds'].idxmin()
         fastest_lap = valid_laps.loc[fastest_lap_idx]
         
-        # Use available driver information
         driver_code = 'Unknown'
         if 'Driver' in fastest_lap.index:
             driver_code = fastest_lap['Driver']
         elif 'Abbreviation' in fastest_lap.index:
             driver_code = fastest_lap['Abbreviation']
         
-        # Find lap number column
         lap_number = 'N/A'
         if 'LapNumber' in fastest_lap.index:
             lap_number = int(fastest_lap['LapNumber'])
@@ -593,7 +537,6 @@ def create_summary_metrics(lap_data, session_info):
             'lap': lap_number
         }
         
-        # Calculate average lap times per driver
         if 'Driver' in valid_laps.columns:
             avg_times = valid_laps.groupby('Driver')['LapTimeSeconds'].mean()
             if not avg_times.empty:
@@ -605,7 +548,6 @@ def create_summary_metrics(lap_data, session_info):
                     'time': format_time_safe(fastest_avg_time)
                 }
         
-        # Calculate consistency (standard deviation)
         if 'Driver' in valid_laps.columns:
             std_times = valid_laps.groupby('Driver')['LapTimeSeconds'].std()
             if not std_times.empty:
@@ -617,7 +559,6 @@ def create_summary_metrics(lap_data, session_info):
                     'std_dev': f"{consistency_value:.3f}s" if not pd.isna(consistency_value) else "N/A"
                 }
         
-        # Race information
         if session_info:
             metrics['race_info'] = {
                 'total_laps': session_info.get('total_laps', 'N/A'),
@@ -650,7 +591,6 @@ def plot_track_speed_map(session, driver, title="Track Speed Map"):
         import matplotlib as mpl
         from matplotlib.collections import LineCollection
         
-        # Get fastest lap for the driver
         driver_laps = session.laps.pick_drivers(driver)
         if driver_laps.empty:
             st.warning(f"No lap data available for driver {driver}")
@@ -661,25 +601,21 @@ def plot_track_speed_map(session, driver, title="Track Speed Map"):
             st.warning(f"No fastest lap found for driver {driver}")
             return None
         
-        # Get telemetry data
         telemetry = fastest_lap.get_telemetry()
         if telemetry.empty:
             st.warning(f"No telemetry data available for driver {driver}")
             return None
         
-        # Check for required columns
         required_cols = ['X', 'Y', 'Speed']
         missing_cols = [col for col in required_cols if col not in telemetry.columns]
         if missing_cols:
             st.warning(f"Missing telemetry columns: {missing_cols}")
             return None
         
-        # Extract coordinates and speed
         x = telemetry['X'].values
         y = telemetry['Y'].values  
         speed = telemetry['Speed'].values
         
-        # Remove any NaN values
         valid_indices = ~(np.isnan(x) | np.isnan(y) | np.isnan(speed))
         x = x[valid_indices]
         y = y[valid_indices]
@@ -689,40 +625,32 @@ def plot_track_speed_map(session, driver, title="Track Speed Map"):
             st.warning(f"Insufficient valid telemetry points for driver {driver}")
             return None
         
-        # Create line segments for coloring
         points = np.array([x, y]).T.reshape(-1, 1, 2)
         segments = np.concatenate([points[:-1], points[1:]], axis=1)
         
-        # Create the plot
         fig, ax = plt.subplots(figsize=(12, 8))
         
-        # Set title and styling
         fig.suptitle(title, size=16, weight='bold')
         
-        # Turn off axis for cleaner look
         ax.axis('off')
         ax.set_aspect('equal')
         
-        # Create background track line (black outline)
         ax.plot(x, y, color='black', linestyle='-', linewidth=8, zorder=0, alpha=0.3)
         
-        # Create speed-colored line segments
         colormap = plt.cm.plasma
         norm = plt.Normalize(speed.min(), speed.max())
         
         lc = LineCollection(segments[:-1], cmap=colormap, norm=norm,
                            linestyle='-', linewidth=4, alpha=0.8)
-        lc.set_array(speed[:-1])  # Use speed values for coloring
+        lc.set_array(speed[:-1]) 
         
         line = ax.add_collection(lc)
         
-        # Add colorbar legend
         cbar = plt.colorbar(line, ax=ax, orientation='horizontal', 
                            pad=0.1, shrink=0.8, aspect=40)
         cbar.set_label('Speed (km/h)', fontsize=12, weight='bold')
         cbar.ax.tick_params(labelsize=10)
         
-        # Add some statistics as text
         ax.text(0.02, 0.98, f'Driver: {driver}', transform=ax.transAxes,
                 fontsize=12, weight='bold', verticalalignment='top',
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
@@ -739,7 +667,6 @@ def plot_track_speed_map(session, driver, title="Track Speed Map"):
                 fontsize=10, verticalalignment='top',
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
         
-        # Adjust layout
         plt.tight_layout()
         
         return fig

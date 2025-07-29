@@ -5,7 +5,6 @@ import numpy as np
 from datetime import datetime
 import warnings
 
-# Suppress FastF1 warnings for cleaner output
 warnings.filterwarnings('ignore', category=FutureWarning)
 import logging
 logging.getLogger('fastf1').setLevel(logging.ERROR)
@@ -66,7 +65,6 @@ def get_lap_data(session, drivers):
         return pd.DataFrame()
     
     try:
-        # Handle both dict format and string format for drivers
         if isinstance(drivers[0], dict):
             driver_abbreviations = [d['abbreviation'] for d in drivers]
         else:
@@ -77,12 +75,10 @@ def get_lap_data(session, drivers):
         if laps.empty:
             return pd.DataFrame()
         
-        # Add calculated fields
         laps = laps.copy()
         laps['LapTimeSeconds'] = laps['LapTime'].dt.total_seconds()
         laps['Position'] = laps['Position'].astype('Int64')
         
-        # Calculate tyre age
         def calculate_tyre_age(driver_laps):
             driver_laps = driver_laps.copy()
             driver_laps['TyreAge'] = 0
@@ -158,7 +154,6 @@ def get_strategy_data(session, selected_drivers=None):
         
         strategy_data = []
         
-        # Get driver abbreviations if selected_drivers is provided
         if selected_drivers:
             driver_abbreviations = [d['abbreviation'] if isinstance(d, dict) else d for d in selected_drivers]
         else:
