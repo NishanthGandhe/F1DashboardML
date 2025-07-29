@@ -229,11 +229,55 @@ def main():
                 st.write(f"Debug: Lap data shape: {lap_data.shape}")
                 st.write(f"Debug: Lap data columns: {lap_data.columns.tolist()}")
                 
+                # Check what drivers are actually in the lap data
+                actual_drivers_in_data = lap_data['Driver'].unique() if 'Driver' in lap_data.columns else []
+                st.write(f"Debug: Actual drivers in lap data: {actual_drivers_in_data.tolist()}")
+                
                 # Filter lap data to selected drivers only
                 filtered_lap_data = lap_data[lap_data['Driver'].isin(selected_drivers)].copy()
                 st.write(f"Debug: Filtered lap data shape: {filtered_lap_data.shape}")
                 
-                if not filtered_lap_data.empty:
+                # If no data for selected drivers, show all data with a note
+                if filtered_lap_data.empty and not lap_data.empty:
+                    st.warning("⚠️ No lap data found for the specific selected drivers. Showing all available drivers for gap analysis.")
+                    
+                    # Use all available drivers from the lap data
+                    available_drivers = lap_data['Driver'].unique()[:10]  # Limit to first 10 for readability
+                    filtered_lap_data = lap_data[lap_data['Driver'].isin(available_drivers)].copy()
+                    
+                    st.info(f"📊 Showing gap analysis for available drivers: {available_drivers.tolist()}")
+                    
+                    if len(available_drivers) > 1:
+                        # Use first available driver as reference
+                        reference_driver = st.selectbox(
+                            "Reference Driver for Gap Analysis",
+                            available_drivers.tolist(),
+                            help="Select the driver to use as reference for gap calculations"
+                        )
+                        
+                        gap_chart = plot_gap_analysis(
+                            filtered_lap_data, 
+                            reference_driver,
+                            f"Gap to {reference_driver} - {selected_race} {selected_year} (All Available Drivers)"
+                        )
+                        st.plotly_chart(gap_chart, use_container_width=True)
+                        
+                        # Show note about driver selection mismatch
+                        with st.expander("Driver Selection Information"):
+                            st.markdown(f"""
+                            **Note:** There appears to be a mismatch between selected drivers and available lap data.
+                            
+                            **Selected drivers:** {selected_drivers}
+                            **Available in lap data:** {actual_drivers_in_data.tolist()}
+                            
+                            This might be due to different driver identification formats (numbers vs abbreviations vs names).
+                            The chart above shows gap analysis for all available drivers in the race data.
+                            """)
+                    else:
+                        st.warning("Need at least 2 drivers for gap analysis.")
+                
+                elif not filtered_lap_data.empty:
+                    # Normal case - we have data for selected drivers
                     reference_driver = st.selectbox(
                         "Reference Driver for Gap Analysis",
                         selected_drivers,
@@ -247,7 +291,7 @@ def main():
                     )
                     st.plotly_chart(gap_chart, use_container_width=True)
                 else:
-                    st.warning("No lap data available for selected drivers")
+                    st.warning("No lap data available for gap analysis")
             else:
                 st.info("Select at least 2 drivers to see gap analysis")
             

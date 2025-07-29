@@ -388,8 +388,9 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
         st.warning("No lap data available for gap analysis")
         return go.Figure()
     
-    # Debug: Show available columns
+    # Debug: Show available columns and drivers
     print(f"Gap analysis - available columns: {lap_data.columns.tolist()}")
+    print(f"Gap analysis - available drivers: {lap_data['Driver'].unique().tolist()}")
     
     # Check for required columns
     required_columns = ['Driver', 'LapNumber']
@@ -422,26 +423,33 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
     
     fig = go.Figure()
     
-    # If no reference driver specified, use the race leader
-    if reference_driver is None:
+    # Get available drivers from the data
+    available_drivers = lap_data['Driver'].unique()
+    
+    # If no reference driver specified, or specified driver not in data, use the best available
+    if reference_driver is None or reference_driver not in available_drivers:
         # Find who was leading most laps or has fastest average time
         if 'Position' in lap_data.columns:
             leader_counts = lap_data[lap_data['Position'] == 1]['Driver'].value_counts()
-            reference_driver = leader_counts.index[0] if not leader_counts.empty else lap_data['Driver'].iloc[0]
+            reference_driver = leader_counts.index[0] if not leader_counts.empty else available_drivers[0]
         else:
             # Use driver with fastest average lap time
             avg_times = lap_data.groupby('Driver')[time_col].mean()
             reference_driver = avg_times.idxmin()
-    
-    drivers = lap_data['Driver'].unique()
+        
+        if reference_driver not in available_drivers:
+            reference_driver = available_drivers[0]
+        
+        st.info(f"Reference driver adjusted to: {reference_driver} (available in data)")
     
     # Filter to only selected drivers if this data is filtered
-    if len(drivers) > 10:  # If we have many drivers, this might be full race data
+    if len(available_drivers) > 10:  # If we have many drivers, this might be full race data
         st.info(f"Using reference driver: {reference_driver}")
     
     team_driver_count = {}
+    drivers_plotted = 0
     
-    for driver in drivers:
+    for driver in available_drivers:
         if driver == reference_driver:
             continue
             
@@ -483,20 +491,39 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
                 marker=dict(size=4),
                 hovertemplate=f"<b>{driver}</b><br>Lap: %{{x}}<br>Gap: %{{y:.2f}}s<extra></extra>"
             ))
+            drivers_plotted += 1
     
     # Add reference line at 0
-    fig.add_hline(y=0, line_dash="dash", line_color="gray", 
-                  annotation_text=f"Reference: {reference_driver}")
-    
-    fig.update_layout(
-        title=title,
-        xaxis_title="Lap Number", 
-        yaxis_title="Cumulative Gap (seconds)",
-        hovermode='closest',
-        showlegend=True,
-        height=600,
-        template='plotly_white'
-    )
+    if drivers_plotted > 0:
+        fig.add_hline(y=0, line_dash="dash", line_color="gray", 
+                      annotation_text=f"Reference: {reference_driver}")
+        
+        fig.update_layout(
+            title=title,
+            xaxis_title="Lap Number", 
+            yaxis_title="Cumulative Gap (seconds)",
+            hovermode='closest',
+            showlegend=True,
+            height=600,
+            template='plotly_white'
+        )
+    else:
+        # No data to plot
+        st.warning(f"No valid gap data found for comparison with {reference_driver}")
+        fig.add_annotation(
+            text=f"No gap data available<br>Reference driver: {reference_driver}<br>Available drivers: {available_drivers.tolist()}",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False,
+            font=dict(size=16, color="gray")
+        )
+        fig.update_layout(
+            title=title,
+            xaxis_title="Lap Number", 
+            yaxis_title="Cumulative Gap (seconds)",
+            height=400,
+            template='plotly_white'
+        )
     
     return fig
 
