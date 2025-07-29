@@ -382,62 +382,57 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
     return fig
 
 def create_summary_metrics(lap_data, session_info):
-    """Create summary metrics for display"""
-    if lap_data.empty:
-        return {}
+    """Create summary metrics for race analysis"""
     
-    metrics = {}
-    
-    # Fastest lap overall
-    fastest_lap = lap_data.loc[lap_data['LapTimeSeconds'].idxmin()]
-    driver_code = fastest_lap.get('Driver', fastest_lap.get('Abbreviation', 'N/A'))
-    metrics['fastest_lap'] = {
-        'driver': f"{fastest_lap['DriverName']} ({driver_code})",
-        'time': f"{int(fastest_lap['LapTimeSeconds']//60)}:{fastest_lap['LapTimeSeconds']%60:06.3f}",
-        'lap': fastest_lap['LapNumber']
-    }
-    
-    # Average lap time by driver
-    # Use Driver column if available, otherwise fall back to a different grouping
-    if 'Driver' in lap_data.columns:
-        group_cols = ['Driver', 'DriverName']
-    else:
-        # Group by driver name only if Driver column is missing
-        group_cols = ['DriverName']
+    try:
+        if lap_data.empty:
+            return {}
         
-    avg_times = lap_data.groupby(group_cols)['LapTimeSeconds'].mean().reset_index()
-    fastest_avg = avg_times.loc[avg_times['LapTimeSeconds'].idxmin()]
-    
-    if 'Driver' in fastest_avg:
-        driver_code = fastest_avg['Driver']
-    else:
-        driver_code = 'N/A'
+        metrics = {}
         
-    metrics['fastest_average'] = {
-        'driver': f"{fastest_avg['DriverName']} ({driver_code})",
-        'time': f"{int(fastest_avg['LapTimeSeconds']//60)}:{fastest_avg['LapTimeSeconds']%60:06.3f}"
-    }
-    
-    # Most consistent driver (lowest std deviation)
-    consistency = lap_data.groupby(group_cols)['LapTimeSeconds'].std().reset_index()
-    most_consistent = consistency.loc[consistency['LapTimeSeconds'].idxmin()]
-    
-    if 'Driver' in most_consistent:
-        driver_code = most_consistent['Driver']
-    else:
-        driver_code = 'N/A'
+        # Get fastest lap
+        fastest_lap = lap_data.loc[lap_data['LapTimeSeconds'].idxmin()]
+        driver_code = fastest_lap.get('Driver', fastest_lap.get('Abbreviation', 'Unknown'))
         
-    metrics['most_consistent'] = {
-        'driver': f"{most_consistent['DriverName']} ({driver_code})",
-        'std_dev': f"{most_consistent['LapTimeSeconds']:.3f}s"
-    }
-    
-    # Race stats
-    if session_info:
-        metrics['race_info'] = {
-            'total_laps': session_info.get('total_laps', 'N/A'),
-            'circuit': session_info.get('event_name', 'N/A'),
-            'date': session_info.get('date', 'N/A')
+        # Use Driver code instead of DriverName (which doesn't exist)
+        metrics['fastest_lap'] = {
+            'driver': driver_code,  # Just use the driver abbreviation
+            'time': f"{int(fastest_lap['LapTimeSeconds']//60)}:{fastest_lap['LapTimeSeconds']%60:06.3f}",
+            'lap': fastest_lap['LapNumber']
         }
-    
-    return metrics
+        
+        # Calculate average lap times per driver
+        avg_times = lap_data.groupby('Driver')['LapTimeSeconds'].mean()
+        if not avg_times.empty:
+            fastest_avg_driver = avg_times.idxmin()
+            fastest_avg_time = avg_times.min()
+            
+            metrics['fastest_average'] = {
+                'driver': fastest_avg_driver,
+                'time': f"{int(fastest_avg_time//60)}:{fastest_avg_time%60:06.3f}"
+            }
+        
+        # Calculate consistency (standard deviation)
+        std_times = lap_data.groupby('Driver')['LapTimeSeconds'].std()
+        if not std_times.empty:
+            most_consistent_driver = std_times.idxmin()
+            consistency_value = std_times.min()
+            
+            metrics['most_consistent'] = {
+                'driver': most_consistent_driver,
+                'std_dev': f"{consistency_value:.3f}s"
+            }
+        
+        # Race information
+        if session_info:
+            metrics['race_info'] = {
+                'total_laps': session_info.get('total_laps', 'N/A'),
+                'event_name': session_info.get('event_name', 'Unknown'),
+                'date': session_info.get('date', 'Unknown')
+            }
+        
+        return metrics
+        
+    except Exception as e:
+        st.error(f"Error creating summary metrics: {str(e)}")
+        return {}
