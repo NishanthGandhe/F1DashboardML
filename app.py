@@ -223,6 +223,13 @@ def main():
             # Gap analysis
             if len(selected_drivers) > 1:
                 st.subheader("🏁 Gap Analysis")
+                
+                # Filter lap data to selected drivers first
+                filtered_lap_data = lap_data[lap_data['Driver'].isin(selected_drivers)].copy()
+                
+                # Check what drivers are actually in the lap data for debugging
+                actual_drivers_in_data = lap_data['Driver'].unique() if 'Driver' in lap_data.columns else []
+                
                 # If no data for selected drivers, show all data with a note
                 if filtered_lap_data.empty and not lap_data.empty:
                     st.warning("⚠️ No lap data found for the specific selected drivers. Showing all available drivers for gap analysis.")
