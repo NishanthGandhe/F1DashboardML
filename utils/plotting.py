@@ -73,7 +73,7 @@ def plot_pace_comparison(lap_data, title="Lap Time Comparison"):
             x=driver_laps['LapNumber'],
             y=driver_laps['LapTimeSeconds'],
             mode='lines+markers',
-            name=f"{driver_laps['DriverName'].iloc[0]} ({driver})",
+            name=f"{driver}",  # Fixed: Use driver abbreviation only
             line=dict(color=color, width=2),
             marker=dict(size=4),
             hovertemplate=(
@@ -146,10 +146,10 @@ def plot_tyre_strategy(strategy_data, title="Tyre Strategy Comparison"):
                     color=TYRE_COLORS.get(stint['compound'], '#808080'),
                     width=20
                 ),
-                name=f"{driver_laps['DriverName'].iloc[0]} - {stint['compound']}",
+                name=f"{driver} - {stint['compound']}",  # Fixed: Use driver abbreviation
                 showlegend=False,
                 hovertemplate=(
-                    f"<b>{driver_laps['DriverName'].iloc[0]}</b><br>" +
+                    f"<b>{driver}</b><br>" +  # Fixed: Use driver abbreviation
                     f"Compound: {stint['compound']}<br>" +
                     f"Laps: {stint['start_lap']}-{stint['end_lap']}<br>" +
                     f"Stint Length: {stint['end_lap'] - stint['start_lap'] + 1} laps<br>" +
@@ -174,8 +174,7 @@ def plot_tyre_strategy(strategy_data, title="Tyre Strategy Comparison"):
         yaxis=dict(
             tickmode='array',
             tickvals=y_positions,
-            ticktext=[strategy_data[strategy_data['Driver'] == driver]['DriverName'].iloc[0] 
-                     for driver in drivers],
+            ticktext=[driver for driver in drivers],  # Fixed: Use driver abbreviation
             title="Driver"
         ),
         height=max(400, len(drivers) * 60),
@@ -294,7 +293,7 @@ def plot_position_changes(lap_data, title="Position Changes Throughout Race"):
             x=driver_laps['LapNumber'],
             y=driver_laps['Position'],
             mode='lines+markers',
-            name=f"{driver_laps['DriverName'].iloc[0]} ({driver})",
+            name=f"{driver}",  # Fixed: Use driver abbreviation only
             line=dict(color=color, width=2),
             marker=dict(size=4)
         ))
@@ -360,7 +359,7 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
                 x=lap_numbers,
                 y=gaps,
                 mode='lines+markers',
-                name=f"{driver_laps['DriverName'].iloc[0]} ({driver})",
+                name=f"{driver}",  # Fixed: Use driver abbreviation only
                 line=dict(color=color, width=2),
                 marker=dict(size=4)
             ))
@@ -382,7 +381,7 @@ def plot_gap_analysis(lap_data, reference_driver=None, title="Gap to Leader Anal
     return fig
 
 def create_summary_metrics(lap_data, session_info):
-    """Create summary metrics for race analysis"""
+    """Create summary metrics for race analysis using available FastF1 columns"""
     
     try:
         if lap_data.empty:
@@ -391,37 +390,45 @@ def create_summary_metrics(lap_data, session_info):
         metrics = {}
         
         # Get fastest lap
-        fastest_lap = lap_data.loc[lap_data['LapTimeSeconds'].idxmin()]
-        driver_code = fastest_lap.get('Driver', fastest_lap.get('Abbreviation', 'Unknown'))
+        fastest_lap_idx = lap_data['LapTimeSeconds'].idxmin()
+        fastest_lap = lap_data.loc[fastest_lap_idx]
         
-        # Use Driver code instead of DriverName (which doesn't exist)
+        # Use available driver information - FastF1 uses 'Driver' not 'DriverName'
+        driver_code = 'Unknown'
+        if 'Driver' in fastest_lap.index:
+            driver_code = fastest_lap['Driver']
+        elif 'Abbreviation' in fastest_lap.index:
+            driver_code = fastest_lap['Abbreviation']
+        
         metrics['fastest_lap'] = {
-            'driver': driver_code,  # Just use the driver abbreviation
+            'driver': driver_code,
             'time': f"{int(fastest_lap['LapTimeSeconds']//60)}:{fastest_lap['LapTimeSeconds']%60:06.3f}",
-            'lap': fastest_lap['LapNumber']
+            'lap': int(fastest_lap['LapNumber']) if 'LapNumber' in fastest_lap.index else 'N/A'
         }
         
         # Calculate average lap times per driver
-        avg_times = lap_data.groupby('Driver')['LapTimeSeconds'].mean()
-        if not avg_times.empty:
-            fastest_avg_driver = avg_times.idxmin()
-            fastest_avg_time = avg_times.min()
-            
-            metrics['fastest_average'] = {
-                'driver': fastest_avg_driver,
-                'time': f"{int(fastest_avg_time//60)}:{fastest_avg_time%60:06.3f}"
-            }
+        if 'Driver' in lap_data.columns:
+            avg_times = lap_data.groupby('Driver')['LapTimeSeconds'].mean()
+            if not avg_times.empty:
+                fastest_avg_driver = avg_times.idxmin()
+                fastest_avg_time = avg_times.min()
+                
+                metrics['fastest_average'] = {
+                    'driver': fastest_avg_driver,
+                    'time': f"{int(fastest_avg_time//60)}:{fastest_avg_time%60:06.3f}"
+                }
         
         # Calculate consistency (standard deviation)
-        std_times = lap_data.groupby('Driver')['LapTimeSeconds'].std()
-        if not std_times.empty:
-            most_consistent_driver = std_times.idxmin()
-            consistency_value = std_times.min()
-            
-            metrics['most_consistent'] = {
-                'driver': most_consistent_driver,
-                'std_dev': f"{consistency_value:.3f}s"
-            }
+        if 'Driver' in lap_data.columns:
+            std_times = lap_data.groupby('Driver')['LapTimeSeconds'].std()
+            if not std_times.empty:
+                most_consistent_driver = std_times.idxmin()
+                consistency_value = std_times.min()
+                
+                metrics['most_consistent'] = {
+                    'driver': most_consistent_driver,
+                    'std_dev': f"{consistency_value:.3f}s"
+                }
         
         # Race information
         if session_info:
@@ -434,5 +441,7 @@ def create_summary_metrics(lap_data, session_info):
         return metrics
         
     except Exception as e:
+        # Import here to avoid circular imports
+        import streamlit as st
         st.error(f"Error creating summary metrics: {str(e)}")
         return {}
