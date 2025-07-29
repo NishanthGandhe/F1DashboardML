@@ -47,6 +47,18 @@ st.markdown("""
 def main():
     """Main application function"""
     
+    # Helper function to convert driver abbreviations to display names
+    def get_driver_display_name(driver_abbrev, drivers_info):
+        """Convert driver abbreviation to display format: 'Full Name (ABV)'"""
+        for info in drivers_info:
+            if info['abbreviation'] == driver_abbrev:
+                return f"{info['full_name']} ({driver_abbrev})"
+        return driver_abbrev  # fallback
+    
+    def get_driver_display_names(driver_list, drivers_info):
+        """Convert list of driver abbreviations to display names"""
+        return [get_driver_display_name(driver, drivers_info) for driver in driver_list]
+    
     # Header
     st.markdown('<h1 class="main-header">F1 Data Analysis Platform</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Interactive Formula 1 Data Visualization & Strategy Simulation</p>', unsafe_allow_html=True)
@@ -257,10 +269,11 @@ def main():
                         
                         # Show note about driver selection mismatch
                         with st.expander("Driver Selection Information"):
+                            selected_display_names = get_driver_display_names(selected_drivers, drivers_info)
                             st.markdown(f"""
                             **Note:** There appears to be a mismatch between selected drivers and available lap data.
                             
-                            **Selected drivers:** {selected_drivers}
+                            **Selected drivers:** {selected_display_names}
                             **Available in lap data:** {actual_drivers_in_data.tolist()}
                             
                             This might be due to different driver identification formats (numbers vs abbreviations vs names).
@@ -271,10 +284,18 @@ def main():
                 
                 elif not filtered_lap_data.empty:
                     # Normal case - we have data for selected drivers
-                    reference_driver = st.selectbox(
+                    selected_display_names = get_driver_display_names(selected_drivers, drivers_info)
+                    reference_driver_display = st.selectbox(
                         "Reference Driver for Gap Analysis",
-                        selected_drivers,
+                        selected_display_names,
                         help="Select the driver to use as reference for gap calculations"
+                    )
+                    
+                    # Convert back to abbreviation for analysis
+                    reference_driver = next(
+                        (abbrev for abbrev, display in zip(selected_drivers, selected_display_names) 
+                         if display == reference_driver_display), 
+                        selected_drivers[0]
                     )
                     
                     gap_chart = plot_gap_analysis(
@@ -301,21 +322,30 @@ def main():
             st.info("Select a driver to see speed variations around the circuit on their fastest lap")
             
             # Driver selection for track speed map
-            speed_map_driver = st.selectbox(
+            selected_display_names = get_driver_display_names(selected_drivers, drivers_info)
+            speed_map_driver_display = st.selectbox(
                 "Select Driver for Speed Map",
-                selected_drivers,
+                selected_display_names,
                 help="Choose a driver to visualize their speed around the track",
                 key="speed_map_driver"
             )
             
+            # Convert back to abbreviation for analysis
+            speed_map_driver = next(
+                (abbrev for abbrev, display in zip(selected_drivers, selected_display_names) 
+                 if display == speed_map_driver_display), 
+                selected_drivers[0]
+            ) if speed_map_driver_display else None
+            
             if speed_map_driver:
-                with st.spinner(f"Loading track speed map for {speed_map_driver}..."):
+                driver_display_name = get_driver_display_name(speed_map_driver, drivers_info)
+                with st.spinner(f"Loading track speed map for {driver_display_name}..."):
                     from utils.plotting import plot_track_speed_map
                     
                     speed_map_fig = plot_track_speed_map(
                         session, 
                         speed_map_driver,
-                        f"Track Speed Map - {speed_map_driver} - {selected_race} {selected_year}"
+                        f"Track Speed Map - {driver_display_name} - {selected_race} {selected_year}"
                     )
                     
                     if speed_map_fig:
@@ -342,7 +372,7 @@ def main():
                             - Understand track characteristics and layout
                             """)
                     else:
-                        st.warning(f"Could not generate speed map for {speed_map_driver}. This may be due to insufficient telemetry data.")
+                        st.warning(f"Could not generate speed map for {driver_display_name}. This may be due to insufficient telemetry data.")
         else:
             st.warning("No lap data available for the selected drivers.")
     
@@ -372,7 +402,7 @@ def main():
                     pit_stops = len(driver_data['Compound'].value_counts()) - 1
                     
                     strategy_stats.append({
-                        'Driver': driver,  # Fixed: Use driver abbreviation instead of DriverName
+                        'Driver': get_driver_display_name(driver, drivers_info),
                         'Compounds Used': ', '.join(compounds_used),
                         'Pit Stops': pit_stops,
                         'Longest Stint': driver_data.groupby('Compound')['StintLength'].max().max() if 'StintLength' in driver_data.columns else driver_data.groupby('Compound').size().max()
@@ -714,12 +744,15 @@ def main():
                 fastest_laps['Formatted Time'] = fastest_laps['LapTimeSeconds'].apply(
                     lambda x: f"{int(x//60)}:{x%60:06.3f}"
                 )
+                fastest_laps['Driver Display'] = fastest_laps['Driver'].apply(
+                    lambda x: get_driver_display_name(x, drivers_info)
+                )
                 fastest_laps = fastest_laps.sort_values('LapTimeSeconds')
                 st.dataframe(
-                    fastest_laps[['Driver', 'Formatted Time']], 
+                    fastest_laps[['Driver Display', 'Formatted Time']], 
                     hide_index=True,
                     column_config={
-                        'Driver': 'Driver Code',
+                        'Driver Display': 'Driver',
                         'Formatted Time': 'Best Lap'
                     }
                 )
@@ -730,12 +763,15 @@ def main():
                 avg_laps['Formatted Time'] = avg_laps['LapTimeSeconds'].apply(
                     lambda x: f"{int(x//60)}:{x%60:06.3f}"
                 )
+                avg_laps['Driver Display'] = avg_laps['Driver'].apply(
+                    lambda x: get_driver_display_name(x, drivers_info)
+                )
                 avg_laps = avg_laps.sort_values('LapTimeSeconds')
                 st.dataframe(
-                    avg_laps[['Driver', 'Formatted Time']], 
+                    avg_laps[['Driver Display', 'Formatted Time']], 
                     hide_index=True,
                     column_config={
-                        'Driver': 'Driver Code',
+                        'Driver Display': 'Driver',
                         'Formatted Time': 'Avg Lap'
                     }
                 )
