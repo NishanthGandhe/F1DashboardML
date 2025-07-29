@@ -189,6 +189,11 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
     if not telemetry_data_dict:
         return go.Figure()
     
+    # Debug: Check what columns are available in telemetry data
+    for driver, telemetry in telemetry_data_dict.items():
+        print(f"Telemetry columns for {driver}: {telemetry.columns.tolist()}")
+        break  # Just check one driver
+    
     # Create subplot with secondary y-axis
     fig = make_subplots(
         rows=4, cols=1,
@@ -206,10 +211,32 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
             
         color = colors[idx % len(colors)]
         
+        # Check what distance column is available
+        distance_col = None
+        if 'Distance' in telemetry.columns:
+            distance_col = 'Distance'
+            # Convert to km if it's in meters
+            distance_data = telemetry['Distance'] / 1000  # FastF1 Distance is in meters
+        elif 'DistanceKm' in telemetry.columns:
+            distance_col = 'DistanceKm'
+            distance_data = telemetry['DistanceKm']
+        else:
+            # Fallback: create distance based on index
+            distance_data = pd.Series(range(len(telemetry))) * 0.01  # Approximate distance
+            st.warning(f"No distance column found for {driver}, using approximation")
+        
+        # Check required columns exist
+        required_cols = ['Speed', 'Throttle', 'Brake', 'nGear']
+        missing_cols = [col for col in required_cols if col not in telemetry.columns]
+        
+        if missing_cols:
+            st.warning(f"Missing telemetry columns for {driver}: {missing_cols}")
+            continue
+        
         # Speed
         fig.add_trace(
             go.Scatter(
-                x=telemetry['DistanceKm'],
+                x=distance_data,
                 y=telemetry['Speed'],
                 name=f"{driver} Speed",
                 line=dict(color=color),
@@ -221,7 +248,7 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
         # Throttle
         fig.add_trace(
             go.Scatter(
-                x=telemetry['DistanceKm'],
+                x=distance_data,
                 y=telemetry['Throttle'],
                 name=f"{driver} Throttle",
                 line=dict(color=color),
@@ -234,7 +261,7 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
         # Brake
         fig.add_trace(
             go.Scatter(
-                x=telemetry['DistanceKm'],
+                x=distance_data,
                 y=telemetry['Brake'],
                 name=f"{driver} Brake",
                 line=dict(color=color),
@@ -247,7 +274,7 @@ def plot_telemetry_comparison(telemetry_data_dict, lap_number, title="Telemetry 
         # Gear
         fig.add_trace(
             go.Scatter(
-                x=telemetry['DistanceKm'],
+                x=distance_data,
                 y=telemetry['nGear'],
                 name=f"{driver} Gear",
                 line=dict(color=color),
