@@ -223,20 +223,6 @@ def main():
             # Gap analysis
             if len(selected_drivers) > 1:
                 st.subheader("🏁 Gap Analysis")
-                
-                # Debug info
-                st.write(f"Debug: Available drivers for gap analysis: {selected_drivers}")
-                st.write(f"Debug: Lap data shape: {lap_data.shape}")
-                st.write(f"Debug: Lap data columns: {lap_data.columns.tolist()}")
-                
-                # Check what drivers are actually in the lap data
-                actual_drivers_in_data = lap_data['Driver'].unique() if 'Driver' in lap_data.columns else []
-                st.write(f"Debug: Actual drivers in lap data: {actual_drivers_in_data.tolist()}")
-                
-                # Filter lap data to selected drivers only
-                filtered_lap_data = lap_data[lap_data['Driver'].isin(selected_drivers)].copy()
-                st.write(f"Debug: Filtered lap data shape: {filtered_lap_data.shape}")
-                
                 # If no data for selected drivers, show all data with a note
                 if filtered_lap_data.empty and not lap_data.empty:
                     st.warning("⚠️ No lap data found for the specific selected drivers. Showing all available drivers for gap analysis.")
@@ -441,10 +427,24 @@ def main():
             # Winner information
             if not race_results.empty:
                 winner = race_results.iloc[0]
-                # Use available attributes from FastF1 DriverResult object
-                driver_name = getattr(winner, 'FullName', getattr(winner, 'Driver', 'Unknown'))
+                # Get driver abbreviation from race results
                 driver_abbrev = getattr(winner, 'Abbreviation', getattr(winner, 'Driver', 'Unknown'))
-                team_name = getattr(winner, 'TeamName', getattr(winner, 'Team', 'Unknown'))
+                
+                # Use session.get_driver() to get full driver information
+                try:
+                    if driver_abbrev != 'Unknown' and session:
+                        driver_data = session.get_driver(driver_abbrev)
+                        driver_name = f"{driver_data['FirstName']} {driver_data['LastName']}"
+                        team_name = driver_data['TeamName']
+                    else:
+                        # Fallback to original method if session method fails
+                        driver_name = getattr(winner, 'FullName', driver_abbrev)
+                        team_name = getattr(winner, 'TeamName', getattr(winner, 'Team', 'Unknown'))
+                except Exception:
+                    # Fallback to original method if session method fails
+                    driver_name = getattr(winner, 'FullName', driver_abbrev)
+                    team_name = getattr(winner, 'TeamName', getattr(winner, 'Team', 'Unknown'))
+                
                 st.success(f"Winner: {driver_name} ({driver_abbrev}) - {team_name}")
             
             
