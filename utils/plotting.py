@@ -111,17 +111,12 @@ def plot_tyre_strategy(strategy_data, title="Tyre Strategy Comparison"):
     # Debug: Check what columns are available
     print(f"Strategy data columns: {strategy_data.columns.tolist()}")
     
-    # Check for required columns
+    # Check for required columns based on actual data structure
     required_columns = ['Driver', 'Compound']
-    lap_column = None
     
-    # Find the lap number column (could be 'LapNumber' or 'Lap')
-    if 'LapNumber' in strategy_data.columns:
-        lap_column = 'LapNumber'
-    elif 'Lap' in strategy_data.columns:
-        lap_column = 'Lap'
-    else:
-        st.error("No lap number column found in strategy data")
+    # The actual data has StartLap and EndLap columns, not LapNumber
+    if 'StartLap' not in strategy_data.columns or 'EndLap' not in strategy_data.columns:
+        st.error("StartLap and EndLap columns not found in strategy data")
         return go.Figure()
     
     # Check if all required columns exist
@@ -136,48 +131,28 @@ def plot_tyre_strategy(strategy_data, title="Tyre Strategy Comparison"):
     y_positions = list(range(len(drivers)))
     
     for idx, driver in enumerate(drivers):
-        driver_laps = strategy_data[strategy_data['Driver'] == driver].copy()
+        driver_stints = strategy_data[strategy_data['Driver'] == driver].copy()
         
-        if driver_laps.empty:
+        if driver_stints.empty:
             continue
         
-        # Group consecutive laps with same compound
-        stints = []
-        current_stint = {
-            'compound': driver_laps.iloc[0]['Compound'],
-            'start_lap': driver_laps.iloc[0][lap_column],  # Use the found lap column
-            'end_lap': driver_laps.iloc[0][lap_column]
-        }
-        
-        for _, lap in driver_laps.iterrows():
-            if lap['Compound'] == current_stint['compound']:
-                current_stint['end_lap'] = lap[lap_column]
-            else:
-                stints.append(current_stint.copy())
-                current_stint = {
-                    'compound': lap['Compound'],
-                    'start_lap': lap[lap_column],
-                    'end_lap': lap[lap_column]
-                }
-        stints.append(current_stint)
-        
-        # Plot each stint
-        for stint in stints:
+        # Plot each stint using StartLap and EndLap directly
+        for _, stint in driver_stints.iterrows():
             fig.add_trace(go.Scatter(
-                x=[stint['start_lap'], stint['end_lap']],
+                x=[stint['StartLap'], stint['EndLap']],
                 y=[idx, idx],
                 mode='lines',
                 line=dict(
-                    color=TYRE_COLORS.get(stint['compound'], '#808080'),
+                    color=TYRE_COLORS.get(stint['Compound'], '#808080'),
                     width=20
                 ),
-                name=f"{driver} - {stint['compound']}",
+                name=f"{driver} - {stint['Compound']}",
                 showlegend=False,
                 hovertemplate=(
                     f"<b>{driver}</b><br>" +
-                    f"Compound: {stint['compound']}<br>" +
-                    f"Laps: {stint['start_lap']}-{stint['end_lap']}<br>" +
-                    f"Stint Length: {stint['end_lap'] - stint['start_lap'] + 1} laps<br>" +
+                    f"Compound: {stint['Compound']}<br>" +
+                    f"Laps: {stint['StartLap']}-{stint['EndLap']}<br>" +
+                    f"Stint Length: {stint.get('StintLength', stint['EndLap'] - stint['StartLap'] + 1)} laps<br>" +
                     "<extra></extra>"
                 )
             ))
