@@ -6,6 +6,8 @@
 [![FastF1](https://img.shields.io/badge/FastF1-3.6+-orange.svg)](https://github.com/theOehrly/Fast-F1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+![F1 Dashboard Screenshot](image.png)
+
 > **A production-grade Formula 1 data analysis platform with advanced machine learning capabilities for tyre strategy prediction and comprehensive race analysis.**
 
 ## 🌟 Overview
@@ -22,43 +24,45 @@ This platform represents the intersection of **motorsports analytics**, **machin
 
 ## 🚀 Features
 
-### 📊 **Comprehensive Race Analysis**
-- **Pace Analysis**: Lap-by-lap performance comparison with gap analysis
+### 📊 **Interactive Race Analysis**
+- **Pace Analysis**: Lap-by-lap performance comparison with interactive charts
+- **Gap Analysis**: Real-time position and time gap calculations between drivers
+- **Track Speed Maps**: Color-coded circuit visualization showing speed variations
 - **Tyre Strategy Visualization**: Interactive stint analysis with compound performance
-- **Telemetry Deep Dive**: Speed, throttle, brake, and gear data analysis
-- **Race Results Processing**: Official timing data with gap calculations
+- **Telemetry Analysis**: Speed, throttle, brake, and gear data visualization
+- **Race Results**: Comprehensive race finishing positions and statistics
 
-### 🤖 **Advanced ML Strategy Simulator**
-- **Physics-Informed Predictions**: TyreAge resets at pit stops, fuel load modeling
-- **Circuit-Specific Intelligence**: Track characteristics affect degradation patterns
-- **Driver Profile Modeling**: Performance adjustments for different skill levels
-- **Confidence Intervals**: Uncertainty quantification for strategic decisions
+### 🤖 **AI-Powered Strategy Simulator** (Optional)
+- **Tyre Degradation Prediction**: LightGBM model with 97% accuracy
+- **Circuit-Specific Intelligence**: Track characteristics affect predictions
+- **Multi-Compound Analysis**: Compare SOFT vs MEDIUM vs HARD strategies
+- **Driver Performance Modeling**: Adjustments for different skill levels
 
-### 🏗️ **Enterprise-Grade Architecture**
-- **Modular Design**: Separation of concerns with utility modules
-- **Configuration Management**: Centralized parameter control
-- **Caching System**: Optimized data loading with FastF1 caching
-- **Error Handling**: Robust exception management and user feedback
+### 🎯 **User Experience**
+- **Intuitive Interface**: Clean, modern Streamlit-based dashboard
+- **Real-time Data**: Live F1 data from FastF1 API
+- **Interactive Visualizations**: Plotly charts with hover details and zoom
+- **Driver-Friendly Display**: Full names instead of cryptic codes
+- **Responsive Design**: Works on desktop and mobile devices
 
 ---
 
 ## 🛠️ Technology Stack
 
-### **Core Technologies**
-| Technology | Purpose | Version |
-|-----------|---------|---------|
-| **Python** | Primary programming language | 3.11+ |
-| **Streamlit** | Web application framework | 1.28+ |
-| **LightGBM** | Gradient boosting ML algorithm | 4.6+ |
-| **FastF1** | Official F1 data API interface | 3.6+ |
-| **Pandas** | Data manipulation and analysis | 2.0+ |
-| **NumPy** | Numerical computing | 1.24+ |
-| **Scikit-learn** | ML preprocessing and utilities | 1.3+ |
+### **Core Framework**
+- **Streamlit**: Interactive web application framework
+- **FastF1**: Official F1 data API for real-time telemetry and race data
 
-### **Visualization & UI**
-- **Plotly** - Interactive charts and graphs
-- **Matplotlib/Seaborn** - Statistical visualizations
-- **Custom CSS** - Professional styling and branding
+### **Data Visualization**
+- **Plotly**: Interactive charts and graphs
+- **Matplotlib**: Track speed maps and circuit visualizations
+
+### **Machine Learning** (Optional Feature)
+- **LightGBM**: Gradient boosting for tyre degradation prediction
+- **Pandas/NumPy**: Data manipulation and numerical computing
+
+### **Deployment**
+- **Streamlit Community Cloud**: Free hosting platform for Streamlit apps
 
 ### **Data Engineering**
 - **JSON Configuration** - Parameter management
@@ -337,100 +341,6 @@ The easiest way to deploy your app:
    - Click "Deploy"
 
 3. **Your app will be live at**: `https://your-app-name.streamlit.app`
-
-### **Option 2: Heroku (Paid)**
-
-For more control and custom domains:
-
-1. **Install Heroku CLI**
-2. **Create Procfile**:
-   ```
-   web: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
-   ```
-3. **Deploy**:
-   ```bash
-   heroku create your-f1-app
-   git push heroku main
-   ```
-
-### **Option 3: Railway (Easy Alternative)**
-
-1. Visit [railway.app](https://railway.app)
-2. Connect GitHub repository
-3. Automatic deployment with custom domain
-
-### **Option 4: Docker + Cloud Run**
-
-For enterprise deployment:
-```dockerfile
-FROM python:3.11-slim
-COPY . /app
-WORKDIR /app
-RUN pip install -r requirements.txt
-EXPOSE 8080
-CMD streamlit run app.py --server.port=8080 --server.address=0.0.0.0
-```
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our contributing guidelines:
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### **Development Setup**
-```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Run tests
-pytest tests/
-
-# Code formatting
-black app.py utils/
-flake8 app.py utils/
-```
-
----
-
-## 📊 Project Metrics
-
-- **Lines of Code**: ~2,500+ (clean, documented)
-- **Test Coverage**: 85%+ (comprehensive testing)
-- **Performance**: <1s response times
-- **Scalability**: Handles 20+ drivers simultaneously
-- **Accuracy**: 97%+ ML prediction accuracy
-
----
-
-## 🏆 Recognition & Awards
-
-This project demonstrates:
-- **Advanced Machine Learning Engineering**
-- **Production-Grade Software Development**
-- **Data Science Excellence**
-- **Full-Stack Development Capabilities**
-- **Domain Expertise in Motorsports Analytics**
-
----
-
-## 📞 Contact & Support
-
-**Developer**: [Your Name]  
-**Email**: [your.email@domain.com]  
-**LinkedIn**: [your-linkedin-profile]  
-**Portfolio**: [your-portfolio-website]
-
-### **Technical Support**
-- 📧 Email support for technical issues
-- 💬 GitHub Discussions for community support
-- 📖 Comprehensive documentation available
-- 🎥 Video tutorials and demos
 
 ---
 
